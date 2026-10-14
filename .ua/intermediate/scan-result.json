@@ -1,0 +1,339 @@
+{
+  "name": "MCU_revision1",
+  "description": "基于 STM32F407（ALIENTEK Explorer 开发板）的裸机嵌入式固件，使用 Keil MDK 构建，集成 USMART 串口调试组件、ADC 流式采样、编码器采样与 USB CDC 数据通信。",
+  "languages": [
+    "batch",
+    "c",
+    "markdown",
+    "txt",
+    "uvprojx"
+  ],
+  "frameworks": [],
+  "files": [
+    {
+      "path": "APP/app_main.c",
+      "language": "c",
+      "sizeLines": 215,
+      "fileCategory": "code"
+    },
+    {
+      "path": "APP/app_main.h",
+      "language": "c",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_stm32_board.c",
+      "language": "c",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_stm32_encoder_adc.c",
+      "language": "c",
+      "sizeLines": 393,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_stm32_encoder_adc.h",
+      "language": "c",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_usb_cdc_device.c",
+      "language": "c",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_usb_cdc_device.h",
+      "language": "c",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_usb_cdc_stream.c",
+      "language": "c",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "IMPLEMENT/impl_usb_cdc_stream.h",
+      "language": "c",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PLATFORM/platform_adc_stream.h",
+      "language": "c",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PLATFORM/platform_board.h",
+      "language": "c",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PLATFORM/platform_byte_stream.h",
+      "language": "c",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PLATFORM/platform_status.h",
+      "language": "c",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PLATFORM/platform_usb_device.h",
+      "language": "c",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 1,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "SERVICE/adc_stream_service.c",
+      "language": "c",
+      "sizeLines": 789,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SERVICE/adc_stream_service.h",
+      "language": "c",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/delay/delay.c",
+      "language": "c",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/delay/delay.h",
+      "language": "c",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/sys/sys.c",
+      "language": "c",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/sys/sys.h",
+      "language": "c",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/usart/usart.c",
+      "language": "c",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SYSTEM/usart/usart.h",
+      "language": "c",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/USMART.uvprojx",
+      "language": "uvprojx",
+      "sizeLines": 817,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/main.c",
+      "language": "c",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/stm32f4xx.h",
+      "language": "c",
+      "sizeLines": 9175,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/stm32f4xx_conf.h",
+      "language": "c",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/stm32f4xx_it.c",
+      "language": "c",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/stm32f4xx_it.h",
+      "language": "c",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/system_stm32f4xx.c",
+      "language": "c",
+      "sizeLines": 1130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USER/system_stm32f4xx.h",
+      "language": "c",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USMART/readme.txt",
+      "language": "txt",
+      "sizeLines": 62,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "USMART/usmart.c",
+      "language": "c",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USMART/usmart.h",
+      "language": "c",
+      "sizeLines": 158,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USMART/usmart_config.c",
+      "language": "c",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USMART/usmart_str.c",
+      "language": "c",
+      "sizeLines": 426,
+      "fileCategory": "code"
+    },
+    {
+      "path": "USMART/usmart_str.h",
+      "language": "c",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "VENDOR/vendor_stm32_encoder_adc.c",
+      "language": "c",
+      "sizeLines": 853,
+      "fileCategory": "code"
+    },
+    {
+      "path": "VENDOR/vendor_stm32_encoder_adc.h",
+      "language": "c",
+      "sizeLines": 159,
+      "fileCategory": "code"
+    },
+    {
+      "path": "VENDOR/vendor_usb_cdc.c",
+      "language": "c",
+      "sizeLines": 135,
+      "fileCategory": "code"
+    },
+    {
+      "path": "VENDOR/vendor_usb_cdc.h",
+      "language": "c",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "keilkilll.bat",
+      "language": "batch",
+      "sizeLines": 27,
+      "fileCategory": "script"
+    }
+  ],
+  "totalFiles": 42,
+  "filteredByIgnore": 176,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    "APP/app_main.c": [
+      "APP/app_main.h"
+    ],
+    "APP/app_main.h": [],
+    "IMPLEMENT/impl_stm32_board.c": [
+      "IMPLEMENT/impl_stm32_encoder_adc.h",
+      "IMPLEMENT/impl_usb_cdc_device.h",
+      "IMPLEMENT/impl_usb_cdc_stream.h"
+    ],
+    "IMPLEMENT/impl_stm32_encoder_adc.c": [
+      "IMPLEMENT/impl_stm32_encoder_adc.h"
+    ],
+    "IMPLEMENT/impl_stm32_encoder_adc.h": [],
+    "IMPLEMENT/impl_usb_cdc_device.c": [
+      "IMPLEMENT/impl_usb_cdc_device.h"
+    ],
+    "IMPLEMENT/impl_usb_cdc_device.h": [],
+    "IMPLEMENT/impl_usb_cdc_stream.c": [
+      "IMPLEMENT/impl_usb_cdc_stream.h"
+    ],
+    "IMPLEMENT/impl_usb_cdc_stream.h": [],
+    "PLATFORM/platform_adc_stream.h": [],
+    "PLATFORM/platform_board.h": [],
+    "PLATFORM/platform_byte_stream.h": [],
+    "PLATFORM/platform_status.h": [],
+    "PLATFORM/platform_usb_device.h": [],
+    "README.md": [],
+    "SERVICE/adc_stream_service.c": [
+      "SERVICE/adc_stream_service.h"
+    ],
+    "SERVICE/adc_stream_service.h": [],
+    "SYSTEM/delay/delay.c": [
+      "SYSTEM/delay/delay.h"
+    ],
+    "SYSTEM/delay/delay.h": [],
+    "SYSTEM/sys/sys.c": [
+      "SYSTEM/sys/sys.h"
+    ],
+    "SYSTEM/sys/sys.h": [],
+    "SYSTEM/usart/usart.c": [],
+    "SYSTEM/usart/usart.h": [],
+    "USER/USMART.uvprojx": [],
+    "USER/main.c": [],
+    "USER/stm32f4xx.h": [],
+    "USER/stm32f4xx_conf.h": [],
+    "USER/stm32f4xx_it.c": [
+      "USER/stm32f4xx_it.h"
+    ],
+    "USER/stm32f4xx_it.h": [],
+    "USER/system_stm32f4xx.c": [
+      "USER/stm32f4xx.h"
+    ],
+    "USER/system_stm32f4xx.h": [],
+    "USMART/readme.txt": [],
+    "USMART/usmart.c": [],
+    "USMART/usmart.h": [],
+    "USMART/usmart_config.c": [],
+    "USMART/usmart_str.c": [],
+    "USMART/usmart_str.h": [],
+    "VENDOR/vendor_stm32_encoder_adc.c": [
+      "VENDOR/vendor_stm32_encoder_adc.h"
+    ],
+    "VENDOR/vendor_stm32_encoder_adc.h": [],
+    "VENDOR/vendor_usb_cdc.c": [
+      "VENDOR/vendor_usb_cdc.h"
+    ],
+    "VENDOR/vendor_usb_cdc.h": [],
+    "keilkilll.bat": []
+  }
+}

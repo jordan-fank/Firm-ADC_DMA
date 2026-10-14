@@ -1,0 +1,41 @@
+# .understandignore — 排除分析的文件/目录
+# 语法同 .gitignore（glob、# 注释、! 反向包含、目录以 / 结尾）
+
+# --- Keil MDK 编译产物 ---
+OBJ/
+
+# --- 其他 AI 工具数据目录 ---
+.codegraph/
+.reasonix/
+.spec-workflow/
+
+# --- 构建日志 ---
+*.log
+
+# --- Keil IDE 状态文件（保留 .uvprojx 工程定义） ---
+USER/*.uvgui.*
+USER/*.uvopt
+USER/*.uvoptx
+USER/*.saved_uv4
+
+# --- 第三方标准库（用户确认排除，聚焦业务代码） ---
+FWLIB/
+USB/
+FATFS/
+CORE/
+
+# --- understand-anything 自身数据目录 ---
+.ua/
+
+# --- Keil 调试/UI 状态文件 ---
+USER/*.uvgui.*
+USER/*.uvguix.*
+USER/DebugConfig/
+USER/EventRecorderStub.scvd
+USER/JLinkLog.txt
+USER/JLinkSettings.ini
+USER/RTE/
+
+# --- 反向包含：VENDOR 是本项目的业务代码（vendor 层外设驱动），非第三方库 ---
+!VENDOR/
+!VENDOR/**

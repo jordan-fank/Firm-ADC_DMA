@@ -1,0 +1,1742 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "no-git-repository",
+  "generatedAt": "2026-10-14T11:06:33.435Z",
+  "files": {
+    "APP/app_main.c": {
+      "filePath": "APP/app_main.c",
+      "contentHash": "fc9854ca8ac87a1536194f542ecc8b06084e637d16536959034b754eff6e6af8",
+      "functions": [
+        {
+          "name": "app_cpu_wait_for_interrupt",
+          "owner": "",
+          "params": [],
+          "returnType": "__asm",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "app_debug_uart_init",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "app_debug_uart_write",
+          "owner": "",
+          "params": [
+            "data",
+            "length"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "app_debug_line_text",
+          "owner": "",
+          "params": [
+            "line",
+            "text"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "app_debug_line_u32",
+          "owner": "",
+          "params": [
+            "line",
+            "value"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "app_debug_line_field",
+          "owner": "",
+          "params": [
+            "line",
+            "name",
+            "value"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "app_debug_uart_event",
+          "owner": "",
+          "params": [
+            "event"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "app_debug_uart_report",
+          "owner": "",
+          "params": [
+            "adc",
+            "state",
+            "service",
+            "queue_used"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 47
+        },
+        {
+          "name": "app_debug_uart_poll",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 27
+        },
+        {
+          "name": "app_main",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 30
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "app_main.h",
+          "specifiers": [
+            "app_main.h"
+          ]
+        },
+        {
+          "source": "adc_stream_service.h",
+          "specifiers": [
+            "adc_stream_service.h"
+          ]
+        },
+        {
+          "source": "vendor_stm32_encoder_adc.h",
+          "specifiers": [
+            "vendor_stm32_encoder_adc.h"
+          ]
+        },
+        {
+          "source": "stm32f4xx.h",
+          "specifiers": [
+            "stm32f4xx.h"
+          ]
+        }
+      ],
+      "exports": [
+        "app_main"
+      ],
+      "totalLines": 216,
+      "hasStructuralAnalysis": true
+    },
+    "APP/app_main.h": {
+      "filePath": "APP/app_main.h",
+      "contentHash": "72b480426b31a95d675c51fcd095ca70c2ab47cb1e6e4f780a6a2e20595db485",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_stm32_board.c": {
+      "filePath": "IMPLEMENT/impl_stm32_board.c",
+      "contentHash": "7542ed8ce290db98e39bf0ee556d208066960479cf95526bd59befaac87683fa",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "platform_board.h",
+          "specifiers": [
+            "platform_board.h"
+          ]
+        },
+        {
+          "source": "impl_stm32_encoder_adc.h",
+          "specifiers": [
+            "impl_stm32_encoder_adc.h"
+          ]
+        },
+        {
+          "source": "impl_usb_cdc_device.h",
+          "specifiers": [
+            "impl_usb_cdc_device.h"
+          ]
+        },
+        {
+          "source": "impl_usb_cdc_stream.h",
+          "specifiers": [
+            "impl_usb_cdc_stream.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_stm32_encoder_adc.c": {
+      "filePath": "IMPLEMENT/impl_stm32_encoder_adc.c",
+      "contentHash": "9efad7e6db9b88cad78644b324af66d19e2df8d590fda0fee3f3a25b6ac4249e",
+      "functions": [
+        {
+          "name": "impl_stm32_encoder_adc_bind",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "impl_stm32_encoder_adc_vendor_sample",
+          "owner": "",
+          "params": [
+            "samples",
+            "sample_count",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "impl_stm32_encoder_adc_init",
+          "owner": "",
+          "params": [
+            "stream",
+            "config"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "impl_stm32_encoder_adc_start",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "impl_stm32_encoder_adc_stop",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "impl_stm32_encoder_adc_pause",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "impl_stm32_encoder_adc_resume",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "impl_stm32_encoder_adc_set_sample_callback",
+          "owner": "",
+          "params": [
+            "stream",
+            "callback",
+            "context"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "impl_stm32_encoder_adc_get_speed_update",
+          "owner": "",
+          "params": [
+            "stream",
+            "speed"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "impl_stm32_encoder_adc_get_state",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_adc_stream_state_t",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "impl_stm32_encoder_adc_adc_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "impl_stm32_encoder_adc_dma_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "impl_stm32_encoder_adc_tim_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "impl_stm32_encoder_adc_speed_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "impl_stm32_encoder_adc_z_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ADC_IRQHandler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "DMA2_Stream0_IRQHandler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "TIM2_IRQHandler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "TIM3_IRQHandler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "EXTI15_10_IRQHandler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "impl_stm32_encoder_adc.h",
+          "specifiers": [
+            "impl_stm32_encoder_adc.h"
+          ]
+        },
+        {
+          "source": "vendor_stm32_encoder_adc.h",
+          "specifiers": [
+            "vendor_stm32_encoder_adc.h"
+          ]
+        }
+      ],
+      "exports": [
+        "impl_stm32_encoder_adc_adc_irq_handler",
+        "impl_stm32_encoder_adc_dma_irq_handler",
+        "impl_stm32_encoder_adc_tim_irq_handler",
+        "impl_stm32_encoder_adc_speed_irq_handler",
+        "impl_stm32_encoder_adc_z_irq_handler",
+        "ADC_IRQHandler",
+        "DMA2_Stream0_IRQHandler",
+        "TIM2_IRQHandler",
+        "TIM3_IRQHandler",
+        "EXTI15_10_IRQHandler"
+      ],
+      "totalLines": 394,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_stm32_encoder_adc.h": {
+      "filePath": "IMPLEMENT/impl_stm32_encoder_adc.h",
+      "contentHash": "e5bd8a4855cb5db8a0f1f551a6ffd1c10591abbb7487dea61d161f0e81815de0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_usb_cdc_device.c": {
+      "filePath": "IMPLEMENT/impl_usb_cdc_device.c",
+      "contentHash": "6b03df764d498aa18b18538334a7de893445362ccc7b6cbc4037e6cbe7ed9fdf",
+      "functions": [
+        {
+          "name": "impl_usb_cdc_device_bind",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "impl_usb_cdc_device_init",
+          "owner": "",
+          "params": [
+            "device"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "impl_usb_cdc_device.h",
+          "specifiers": [
+            "impl_usb_cdc_device.h"
+          ]
+        },
+        {
+          "source": "vendor_usb_cdc.h",
+          "specifiers": [
+            "vendor_usb_cdc.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_usb_cdc_device.h": {
+      "filePath": "IMPLEMENT/impl_usb_cdc_device.h",
+      "contentHash": "03bb844d50d54ef1ebd5c87c5c06775b596faa7c7a0ced17b9209f20a80462b3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_usb_cdc_stream.c": {
+      "filePath": "IMPLEMENT/impl_usb_cdc_stream.c",
+      "contentHash": "acd5ae9ed004f5eaccd50454206177750a74fe5c61126ecc353a3e9eba2ecf38",
+      "functions": [
+        {
+          "name": "impl_usb_cdc_stream_bind",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "impl_usb_cdc_stream_map_status",
+          "owner": "",
+          "params": [
+            "status"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "impl_usb_cdc_stream_vendor_rx",
+          "owner": "",
+          "params": [
+            "data",
+            "length",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "impl_usb_cdc_stream_init",
+          "owner": "",
+          "params": [
+            "stream"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "impl_usb_cdc_stream_send",
+          "owner": "",
+          "params": [
+            "stream",
+            "data",
+            "length"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "impl_usb_cdc_stream_set_rx_callback",
+          "owner": "",
+          "params": [
+            "stream",
+            "callback",
+            "context"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 14
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "impl_usb_cdc_stream.h",
+          "specifiers": [
+            "impl_usb_cdc_stream.h"
+          ]
+        },
+        {
+          "source": "vendor_usb_cdc.h",
+          "specifiers": [
+            "vendor_usb_cdc.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 167,
+      "hasStructuralAnalysis": true
+    },
+    "IMPLEMENT/impl_usb_cdc_stream.h": {
+      "filePath": "IMPLEMENT/impl_usb_cdc_stream.h",
+      "contentHash": "4a3e2a58a6e0a0ba424f097b6505b206879403db9d1dd13e87717217b3534d03",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "PLATFORM/platform_adc_stream.h": {
+      "filePath": "PLATFORM/platform_adc_stream.h",
+      "contentHash": "648c1c3608bf733c59eb1e74078b9542ef27bac277207daf989b822a4de9ed1b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 105,
+      "hasStructuralAnalysis": true
+    },
+    "PLATFORM/platform_board.h": {
+      "filePath": "PLATFORM/platform_board.h",
+      "contentHash": "62ac84d5f1ac065c96413e978ae91e7273cbd6b150200ed2f839fe87e6198958",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "PLATFORM/platform_byte_stream.h": {
+      "filePath": "PLATFORM/platform_byte_stream.h",
+      "contentHash": "d4e49299c47265da45e23ba24e4105f70078e533bf93f0fa61276f46539b1667",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "PLATFORM/platform_status.h": {
+      "filePath": "PLATFORM/platform_status.h",
+      "contentHash": "275ab092e318c84a734458899b8ea18ca9a42aaf7e0e88abca4595c4c3085176",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "PLATFORM/platform_usb_device.h": {
+      "filePath": "PLATFORM/platform_usb_device.h",
+      "contentHash": "c6b46f24bfbeebdb2905c829832b4ebbef71fcad0540fc17b5fd02bf1f9a2c0b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "6333ecfad701b0ed0fbe7b40f1f833408f9e52af6b05bd529cc568a5bec921e6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    },
+    "SERVICE/adc_stream_service.c": {
+      "filePath": "SERVICE/adc_stream_service.c",
+      "contentHash": "129244225a283256b83ad081c786e059911d2ad735dc4434fb9a27d2b1c43abd",
+      "functions": [
+        {
+          "name": "adc_stream_service_next_index",
+          "owner": "",
+          "params": [
+            "index",
+            "size"
+          ],
+          "returnType": "uint32_t",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "adc_stream_service_queue_count",
+          "owner": "",
+          "params": [
+            "head",
+            "tail",
+            "size"
+          ],
+          "returnType": "uint32_t",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "adc_stream_service_reset_adc_queue",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "adc_stream_service_send_bytes",
+          "owner": "",
+          "params": [
+            "data",
+            "length"
+          ],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "adc_stream_service_pause_for_tx",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "adc_stream_service_resume_after_tx",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "adc_stream_service_adc_queue_push_block",
+          "owner": "",
+          "params": [
+            "samples",
+            "sample_count"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 56
+        },
+        {
+          "name": "adc_stream_service_prepare_adc_chunk",
+          "owner": "",
+          "params": [],
+          "returnType": "uint32_t",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "adc_stream_service_drop_sent_adc",
+          "owner": "",
+          "params": [
+            "count"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "adc_stream_service_send_adc_chunk",
+          "owner": "",
+          "params": [],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "adc_stream_service_send_speed_frame",
+          "owner": "",
+          "params": [],
+          "returnType": "platform_status_t",
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "adc_stream_service_finish_stop_if_drained",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "adc_stream_service_execute_command",
+          "owner": "",
+          "params": [
+            "command"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "adc_stream_service_parse_rx_byte",
+          "owner": "",
+          "params": [
+            "byte"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "adc_stream_service_process_rx_queue",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "adc_stream_service_process_speed_update",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "adc_stream_service_process_adc_tx",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "adc_stream_service_init",
+          "owner": "",
+          "params": [],
+          "returnType": "platform_status_t",
+          "exported": true,
+          "lineCount": 79
+        },
+        {
+          "name": "adc_stream_service_poll",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "adc_stream_service_start",
+          "owner": "",
+          "params": [],
+          "returnType": "platform_status_t",
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "adc_stream_service_stop",
+          "owner": "",
+          "params": [],
+          "returnType": "platform_status_t",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "adc_stream_service_get_state",
+          "owner": "",
+          "params": [],
+          "returnType": "adc_stream_service_state_t",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "adc_stream_service_get_stats",
+          "owner": "",
+          "params": [],
+          "returnType": "adc_stream_service_stats_t",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "adc_stream_service_get_queue_used",
+          "owner": "",
+          "params": [],
+          "returnType": "uint32_t",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "adc_stream_service_can_sleep",
+          "owner": "",
+          "params": [],
+          "returnType": "uint8_t",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "adc_stream_service_sample_callback",
+          "owner": "",
+          "params": [
+            "stream",
+            "samples",
+            "sample_count",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "adc_stream_service_rx_callback",
+          "owner": "",
+          "params": [
+            "stream",
+            "data",
+            "length",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 25
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "adc_stream_service.h",
+          "specifiers": [
+            "adc_stream_service.h"
+          ]
+        },
+        {
+          "source": "platform_board.h",
+          "specifiers": [
+            "platform_board.h"
+          ]
+        },
+        {
+          "source": "string.h",
+          "specifiers": [
+            "string.h"
+          ]
+        }
+      ],
+      "exports": [
+        "adc_stream_service_init",
+        "adc_stream_service_poll",
+        "adc_stream_service_start",
+        "adc_stream_service_stop",
+        "adc_stream_service_get_state",
+        "adc_stream_service_get_stats",
+        "adc_stream_service_get_queue_used",
+        "adc_stream_service_can_sleep"
+      ],
+      "totalLines": 790,
+      "hasStructuralAnalysis": true
+    },
+    "SERVICE/adc_stream_service.h": {
+      "filePath": "SERVICE/adc_stream_service.h",
+      "contentHash": "48753aac89b40704f6ed1c7fc6ed52ee33fac5de0835c8864a87a6f5a2ef68f0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 87,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/delay/delay.c": {
+      "filePath": "SYSTEM/delay/delay.c",
+      "contentHash": "a26d31f9cd77ae72bfdfdbc3accd3e273b47a30d60054c3ecba72026f77912da",
+      "functions": [
+        {
+          "name": "delay_init",
+          "owner": "",
+          "params": [
+            "SYSCLK"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 20
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "delay.h",
+          "specifiers": [
+            "delay.h"
+          ]
+        },
+        {
+          "source": "sys.h",
+          "specifiers": [
+            "sys.h"
+          ]
+        }
+      ],
+      "exports": [
+        "delay_init"
+      ],
+      "totalLines": 184,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/delay/delay.h": {
+      "filePath": "SYSTEM/delay/delay.h",
+      "contentHash": "7f70ae6d66318bdc829453332151bf01fb001caf49a416b56a1e0bd7088cea86",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/sys/sys.c": {
+      "filePath": "SYSTEM/sys/sys.c",
+      "contentHash": "1eba3ab143e8668d55bc410fe30c3456d1a9b6c6f4b59534dfdee570c8d0bac4",
+      "functions": [
+        {
+          "name": "WFI_SET",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "sys.h",
+          "specifiers": [
+            "sys.h"
+          ]
+        }
+      ],
+      "exports": [
+        "WFI_SET"
+      ],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/sys/sys.h": {
+      "filePath": "SYSTEM/sys/sys.h",
+      "contentHash": "38d91ff4cc801f50e39750c93c3831dce634a463717cc45a9a13422e6fcb0425",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/usart/usart.c": {
+      "filePath": "SYSTEM/usart/usart.c",
+      "contentHash": "040b485a90d08672b4fa7936e6dbb61e75ee3ee70f107d20acba022cb0dc7516",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 215,
+      "hasStructuralAnalysis": true
+    },
+    "SYSTEM/usart/usart.h": {
+      "filePath": "SYSTEM/usart/usart.h",
+      "contentHash": "349270884739598864f139a905ffae4751f1dd27faa30b570c6115928f9736c2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "USER/USMART.uvprojx": {
+      "filePath": "USER/USMART.uvprojx",
+      "contentHash": "bbfc38604281b5436f7d700f3429b7ccfb9820134ca9869c3fd4564360de897c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 818,
+      "hasStructuralAnalysis": false
+    },
+    "USER/main.c": {
+      "filePath": "USER/main.c",
+      "contentHash": "0641fdeae2aad34dcd0790ef7015f7e0f9d856dc9d44ed00de21e62cbf9481ce",
+      "functions": [
+        {
+          "name": "main",
+          "owner": "",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "app_main.h",
+          "specifiers": [
+            "app_main.h"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "USER/stm32f4xx.h": {
+      "filePath": "USER/stm32f4xx.h",
+      "contentHash": "0bd90f867762b30ea5db0a71c2dc58a215dea3fd5970aa7c71485f63a582853f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9176,
+      "hasStructuralAnalysis": true
+    },
+    "USER/stm32f4xx_conf.h": {
+      "filePath": "USER/stm32f4xx_conf.h",
+      "contentHash": "1de02ba948488f61e50a0d217390ec90c0459ed63944acb9854426904469152b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 126,
+      "hasStructuralAnalysis": true
+    },
+    "USER/stm32f4xx_it.c": {
+      "filePath": "USER/stm32f4xx_it.c",
+      "contentHash": "5fb95f22721c50df177f45aa8c22950cc44341a5587b86a0a88d7e5d232528b3",
+      "functions": [
+        {
+          "name": "NMI_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "HardFault_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "MemManage_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "BusFault_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "UsageFault_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "SVC_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "DebugMon_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "PendSV_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "SysTick_Handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "stm32f4xx_it.h",
+          "specifiers": [
+            "stm32f4xx_it.h"
+          ]
+        }
+      ],
+      "exports": [
+        "NMI_Handler",
+        "HardFault_Handler",
+        "MemManage_Handler",
+        "BusFault_Handler",
+        "UsageFault_Handler",
+        "SVC_Handler",
+        "DebugMon_Handler",
+        "PendSV_Handler",
+        "SysTick_Handler"
+      ],
+      "totalLines": 197,
+      "hasStructuralAnalysis": true
+    },
+    "USER/stm32f4xx_it.h": {
+      "filePath": "USER/stm32f4xx_it.h",
+      "contentHash": "a306fcc051d1a23b23d706c2b798e1a1f857930cd27d36c02d3a3da76ef0bde3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "USER/system_stm32f4xx.c": {
+      "filePath": "USER/system_stm32f4xx.c",
+      "contentHash": "254f210ee4582572bea7cc2c7896f1b4efa5152c6606b49e10669800c0e7adf6",
+      "functions": [
+        {
+          "name": "SystemInit",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 40
+        },
+        {
+          "name": "SystemCoreClockUpdate",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 61
+        },
+        {
+          "name": "SetSysClock",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 209
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "stm32f4xx.h",
+          "specifiers": [
+            "stm32f4xx.h"
+          ]
+        }
+      ],
+      "exports": [
+        "SystemInit",
+        "SystemCoreClockUpdate"
+      ],
+      "totalLines": 1131,
+      "hasStructuralAnalysis": true
+    },
+    "USER/system_stm32f4xx.h": {
+      "filePath": "USER/system_stm32f4xx.h",
+      "contentHash": "50f5887a8d62d774e1bc3d0a2e8892dd43b5d200a2f6d9266f5b747d5810cb0f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
+    "USMART/readme.txt": {
+      "filePath": "USMART/readme.txt",
+      "contentHash": "8c91a95e2b86807f305bcacd3f063c6cd7765c824645000c1fc09f564e34d57c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 63,
+      "hasStructuralAnalysis": false
+    },
+    "USMART/usmart.c": {
+      "filePath": "USMART/usmart.c",
+      "contentHash": "fa3ce9914b744809b7a0b5aecd3eb6dab69f85dd4448b53624c2386c5a36f10e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "USMART/usmart.h": {
+      "filePath": "USMART/usmart.h",
+      "contentHash": "6d9dc6fd0154fb5318b5429f9ce51dcfe1d2f6b45853cb801bac60c1b4cfc0aa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 159,
+      "hasStructuralAnalysis": true
+    },
+    "USMART/usmart_config.c": {
+      "filePath": "USMART/usmart_config.c",
+      "contentHash": "eceadc4f7a22494c0a264e69b586e52ea181e5fc110d24ce71e60ab888ddc619",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "USMART/usmart_str.c": {
+      "filePath": "USMART/usmart_str.c",
+      "contentHash": "51cbd2703fcd20ec92b4a26708720c4d3fc679d66768488c4ef8bc94671c013e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 427,
+      "hasStructuralAnalysis": true
+    },
+    "USMART/usmart_str.h": {
+      "filePath": "USMART/usmart_str.h",
+      "contentHash": "08dc8a8d346968e6553c79ca594f58158e67e9d45546b8b5416298d322d2cc28",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 84,
+      "hasStructuralAnalysis": true
+    },
+    "VENDOR/vendor_stm32_encoder_adc.c": {
+      "filePath": "VENDOR/vendor_stm32_encoder_adc.c",
+      "contentHash": "6602cacf00707b6a6d89efc660601a71457b095e423914017d19b59550bb8127",
+      "functions": [
+        {
+          "name": "vendor_adc_reset_debug_counters",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "vendor_adc_normalize_trigger_counts",
+          "owner": "",
+          "params": [
+            "trigger_counts"
+          ],
+          "returnType": "uint16_t",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "vendor_adc_normalize_speed_ms",
+          "owner": "",
+          "params": [
+            "speed_update_ms"
+          ],
+          "returnType": "uint16_t",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "vendor_adc_wait_dma_disabled",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "vendor_adc_clear_dma_pending",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "vendor_adc_emit_dma_samples",
+          "owner": "",
+          "params": [
+            "source_offset",
+            "sample_count"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "vendor_adc_emit_dma_range",
+          "owner": "",
+          "params": [
+            "source_offset",
+            "sample_count"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "vendor_adc_emit_until",
+          "owner": "",
+          "params": [
+            "write_position"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "vendor_adc_config_gpio",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 46
+        },
+        {
+          "name": "vendor_adc_config_tim2_single_edge",
+          "owner": "",
+          "params": [
+            "trigger_counts"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 39
+        },
+        {
+          "name": "vendor_adc_config_tim5_timestamp",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "vendor_adc_config_z_irq",
+          "owner": "",
+          "params": [
+            "config"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "vendor_adc_config_dma_irq",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "vendor_adc_config_dma",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "vendor_adc_config_adc1",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_init",
+          "owner": "",
+          "params": [
+            "config"
+          ],
+          "returnType": "vendor_stm32_encoder_adc_status_t",
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_start",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 40
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_stop",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_pause",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_resume",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_set_sample_handler",
+          "owner": "",
+          "params": [
+            "handler",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_get_speed_update",
+          "owner": "",
+          "params": [
+            "speed"
+          ],
+          "returnType": "vendor_stm32_encoder_adc_status_t",
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_get_debug",
+          "owner": "",
+          "params": [
+            "debug"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_adc_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_dma_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 52
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_tim_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_speed_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "vendor_stm32_encoder_adc_z_irq_handler",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 40
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vendor_stm32_encoder_adc.h",
+          "specifiers": [
+            "vendor_stm32_encoder_adc.h"
+          ]
+        },
+        {
+          "source": "stm32f4xx.h",
+          "specifiers": [
+            "stm32f4xx.h"
+          ]
+        }
+      ],
+      "exports": [
+        "vendor_stm32_encoder_adc_init",
+        "vendor_stm32_encoder_adc_start",
+        "vendor_stm32_encoder_adc_stop",
+        "vendor_stm32_encoder_adc_pause",
+        "vendor_stm32_encoder_adc_resume",
+        "vendor_stm32_encoder_adc_set_sample_handler",
+        "vendor_stm32_encoder_adc_get_speed_update",
+        "vendor_stm32_encoder_adc_get_debug",
+        "vendor_stm32_encoder_adc_adc_irq_handler",
+        "vendor_stm32_encoder_adc_dma_irq_handler",
+        "vendor_stm32_encoder_adc_tim_irq_handler",
+        "vendor_stm32_encoder_adc_speed_irq_handler",
+        "vendor_stm32_encoder_adc_z_irq_handler"
+      ],
+      "totalLines": 854,
+      "hasStructuralAnalysis": true
+    },
+    "VENDOR/vendor_stm32_encoder_adc.h": {
+      "filePath": "VENDOR/vendor_stm32_encoder_adc.h",
+      "contentHash": "6632be11ecaf0b65248235a38a2fea0289523229a17d254711edc50e1c94f1cc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 160,
+      "hasStructuralAnalysis": true
+    },
+    "VENDOR/vendor_usb_cdc.c": {
+      "filePath": "VENDOR/vendor_usb_cdc.c",
+      "contentHash": "fb31ce4a029af27dd30ac848d95c767b1cd8f59edcaeb4384a85fc3b4786437e",
+      "functions": [
+        {
+          "name": "vendor_usb_cdc_get_tx_free",
+          "owner": "",
+          "params": [],
+          "returnType": "uint32_t",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "vendor_usb_cdc_device_init",
+          "owner": "",
+          "params": [],
+          "returnType": "vendor_usb_cdc_status_t",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "vendor_usb_cdc_write",
+          "owner": "",
+          "params": [
+            "data",
+            "length"
+          ],
+          "returnType": "vendor_usb_cdc_status_t",
+          "exported": true,
+          "lineCount": 39
+        },
+        {
+          "name": "vendor_usb_cdc_set_rx_handler",
+          "owner": "",
+          "params": [
+            "handler",
+            "context"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "vendor_usb_cdc_handle_rx_packet",
+          "owner": "",
+          "params": [
+            "data",
+            "length"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vendor_usb_cdc.h",
+          "specifiers": [
+            "vendor_usb_cdc.h"
+          ]
+        },
+        {
+          "source": "usb_conf.h",
+          "specifiers": [
+            "usb_conf.h"
+          ]
+        },
+        {
+          "source": "usbd_conf.h",
+          "specifiers": [
+            "usbd_conf.h"
+          ]
+        },
+        {
+          "source": "usbd_core.h",
+          "specifiers": [
+            "usbd_core.h"
+          ]
+        },
+        {
+          "source": "usbd_cdc_core.h",
+          "specifiers": [
+            "usbd_cdc_core.h"
+          ]
+        },
+        {
+          "source": "usbd_desc.h",
+          "specifiers": [
+            "usbd_desc.h"
+          ]
+        },
+        {
+          "source": "usbd_usr.h",
+          "specifiers": [
+            "usbd_usr.h"
+          ]
+        },
+        {
+          "source": "string.h",
+          "specifiers": [
+            "string.h"
+          ]
+        }
+      ],
+      "exports": [
+        "vendor_usb_cdc_get_tx_free",
+        "vendor_usb_cdc_device_init",
+        "vendor_usb_cdc_write",
+        "vendor_usb_cdc_set_rx_handler",
+        "vendor_usb_cdc_handle_rx_packet"
+      ],
+      "totalLines": 136,
+      "hasStructuralAnalysis": true
+    },
+    "VENDOR/vendor_usb_cdc.h": {
+      "filePath": "VENDOR/vendor_usb_cdc.h",
+      "contentHash": "ca73e1d0e7ee6376e1c530984d995323e70ff43cae0db0ebb3a496790115767c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "keilkilll.bat": {
+      "filePath": "keilkilll.bat",
+      "contentHash": "e03d03fa8b16a7b4c7500fe5623c5a7ff21a2c68a1f1b05c679ebfe19a3d317c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 28,
+      "hasStructuralAnalysis": false
+    }
+  }
+}

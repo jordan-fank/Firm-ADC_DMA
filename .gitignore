@@ -1,0 +1,26 @@
+# ===== Keil MDK 编译产物 =====
+OBJ/
+
+# ===== 构建日志 =====
+*.log
+
+# ===== Keil IDE 本地状态（因机器/用户而异，不应共享）=====
+USER/*.uvgui.*
+USER/*.uvguix.*
+USER/*.uvopt
+USER/*.uvoptx
+USER/*.saved_uv4
+.vscode/
+USER/DebugConfig/
+USER/EventRecorderStub.scvd
+USER/JLinkLog.txt
+USER/JLinkSettings.ini
+USER/RTE/
+
+# ===== 其他工具的数据目录 =====
+.codegraph/
+.reasonix/
+.spec-workflow/
+
+# ===== understand-anything 的清理垃圾（保留图谱与基线数据）=====
+.ua/.trash-*/
