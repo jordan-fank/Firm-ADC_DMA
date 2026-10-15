@@ -24,3 +24,7 @@ USER/RTE/
 
 # ===== understand-anything 的清理垃圾（保留图谱与基线数据）=====
 .ua/.trash-*/
+
+# ===== understand-anything 增量分析的中间产物（保留 scan-result.json 供增量跳过 Phase 1）=====
+.ua/intermediate/*
+!.ua/intermediate/scan-result.json
