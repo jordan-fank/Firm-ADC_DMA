@@ -11,8 +11,8 @@
     ],
     "frameworks": [],
     "description": "基于 STM32F407（ALIENTEK Explorer 开发板）的裸机嵌入式固件，使用 Keil MDK 构建，集成 USMART 串口调试组件、ADC 流式采样、编码器采样与 USB CDC 数据通信。",
-    "analyzedAt": "2026-10-14T11:04:26.879Z",
-    "gitCommitHash": "80067eacc453ff551496477deec4f07a44ac0ac0"
+    "analyzedAt": "2026-10-15T01:16:04.963Z",
+    "gitCommitHash": "c0e5f2a91cae5feff254e64da4f4291ba60eb6a5"
   },
   "nodes": [
     {
