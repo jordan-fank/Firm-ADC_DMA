@@ -1,5 +1,7 @@
 #include "vendor_stm32_encoder_adc.h"
 #include "stm32f4xx.h"
+/* sys.h supplies INTX_DISABLE/INTX_ENABLE; armclang has no __disable_irq() intrinsic. */
+#include "sys.h"
 
 /* New board binding: PA5 is TIM2_CH1 single-edge input, PA4 is phase-A GPIO. */
 #define VENDOR_ADC_GPIO_PORT               GPIOA
@@ -650,7 +652,7 @@ vendor_stm32_encoder_adc_status_t vendor_stm32_encoder_adc_get_speed_update(vend
      * can update last_tick after foreground code reads now; unsigned
      * subtraction then looks like a huge timeout and briefly reports 0 RPM.
      */
-    __disable_irq();
+    INTX_DISABLE();
 
     /* No Z edge for one report interval means the rotor is treated as stopped. */
     if ((vendor_adc_acquisition_active != 0U) &&
@@ -669,7 +671,7 @@ vendor_stm32_encoder_adc_status_t vendor_stm32_encoder_adc_get_speed_update(vend
     speed->updated = vendor_adc_speed_updated;
     vendor_adc_speed_updated = 0U;
 
-    __enable_irq();
+    INTX_ENABLE();
 
     return VENDOR_STM32_ENCODER_ADC_OK;
 }
@@ -681,7 +683,7 @@ void vendor_stm32_encoder_adc_get_debug(vendor_stm32_encoder_adc_debug_t *debug)
     }
 
     /* This foreground-only API is called with interrupts enabled. */
-    __disable_irq();
+    INTX_DISABLE();
 
     debug->timestamp_us = TIM_GetCounter(TIM5);
     debug->rpm = vendor_adc_latest_rpm;
@@ -709,7 +711,7 @@ void vendor_stm32_encoder_adc_get_debug(vendor_stm32_encoder_adc_debug_t *debug)
     debug->phase_b_level =
         (GPIO_ReadInputDataBit(GPIOA, VENDOR_ADC_PHASE_B_PIN) != Bit_RESET) ? 1U : 0U;
 
-    __enable_irq();
+    INTX_ENABLE();
 }
 
 /**

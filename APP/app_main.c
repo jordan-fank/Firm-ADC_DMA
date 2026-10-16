@@ -13,10 +13,9 @@ typedef struct {
 } app_debug_line_t;
 
 /* The legacy CMSIS headers in this project do not provide __WFI(). */
-static __asm void app_cpu_wait_for_interrupt(void)
+static __attribute__((naked)) void app_cpu_wait_for_interrupt(void)
 {
-    WFI
-    BX      LR
+    __asm volatile("wfi\n\tbx lr\n");
 }
 
 static void app_debug_uart_init(void)

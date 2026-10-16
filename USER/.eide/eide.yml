@@ -1,0 +1,325 @@
+version: "4.1"
+name: USMART
+type: ARM
+deviceName: null
+packDir: .pack/Keil/STM32F4xx_DFP.3.1.1
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: USER
+      files:
+        - path: main.c
+        - path: stm32f4xx_it.c
+        - path: system_stm32f4xx.c
+      folders: []
+    - name: HARDWARE
+      files: []
+      folders: []
+    - name: SYSTEM
+      files:
+        - path: ../SYSTEM/delay/delay.c
+        - path: ../SYSTEM/sys/sys.c
+      folders: []
+    - name: APP
+      files:
+        - path: ../APP/app_main.c
+        - path: ../APP/app_main.h
+      folders: []
+    - name: SERVICE
+      files:
+        - path: ../SERVICE/adc_stream_service.c
+        - path: ../SERVICE/adc_stream_service.h
+      folders: []
+    - name: PLATFORM
+      files:
+        - path: ../PLATFORM/platform_status.h
+        - path: ../PLATFORM/platform_adc_stream.h
+        - path: ../PLATFORM/platform_byte_stream.h
+        - path: ../PLATFORM/platform_usb_device.h
+        - path: ../PLATFORM/platform_board.h
+      folders: []
+    - name: IMPLEMENT
+      files:
+        - path: ../IMPLEMENT/impl_stm32_board.c
+        - path: ../IMPLEMENT/impl_stm32_encoder_adc.c
+        - path: ../IMPLEMENT/impl_stm32_encoder_adc.h
+        - path: ../IMPLEMENT/impl_usb_cdc_device.c
+        - path: ../IMPLEMENT/impl_usb_cdc_device.h
+        - path: ../IMPLEMENT/impl_usb_cdc_stream.c
+        - path: ../IMPLEMENT/impl_usb_cdc_stream.h
+      folders: []
+    - name: VENDOR
+      files:
+        - path: ../VENDOR/vendor_stm32_encoder_adc.c
+        - path: ../VENDOR/vendor_stm32_encoder_adc.h
+        - path: ../VENDOR/vendor_usb_cdc.c
+        - path: ../VENDOR/vendor_usb_cdc.h
+      folders: []
+    - name: CORE
+      files:
+        - path: ../CORE/startup_stm32f40_41xxx.s
+        - path: ../CORE/core_cm4.h
+        - path: ../CORE/core_cm4_simd.h
+      folders: []
+    - name: FWLIB
+      files:
+        - path: ../FWLIB/src/misc.c
+        - path: ../FWLIB/src/stm32f4xx_gpio.c
+        - path: ../FWLIB/src/stm32f4xx_fsmc.c
+        - path: ../FWLIB/src/stm32f4xx_rcc.c
+        - path: ../FWLIB/src/stm32f4xx_usart.c
+        - path: ../FWLIB/src/stm32f4xx_tim.c
+        - path: ../FWLIB/src/stm32f4xx_syscfg.c
+        - path: ../FWLIB/src/stm32f4xx_exti.c
+        - path: ../FWLIB/src/stm32f4xx_adc.c
+        - path: ../FWLIB/src/stm32f4xx_dma.c
+        - path: ../FWLIB/src/stm32f4xx_sdio.c
+      folders: []
+    - name: USB_BOARD
+      files:
+        - path: ../USB/USB_BOARD/stm324xg_eval.c
+        - path: ../USB/USB_BOARD/stm324xg_eval.h
+      folders: []
+    - name: USB_CDC
+      files:
+        - path: ../USB/USB_CDC/inc/usbd_cdc_core.h
+        - path: ../USB/USB_CDC/src/usbd_cdc_core.c
+      folders: []
+    - name: USB_DRIVE
+      files:
+        - path: ../USB/USB_DRIVE/inc/usb_bsp.h
+        - path: ../USB/USB_DRIVE/inc/usb_core.h
+        - path: ../USB/USB_DRIVE/inc/usb_dcd.h
+        - path: ../USB/USB_DRIVE/inc/usb_dcd_int.h
+        - path: ../USB/USB_DRIVE/inc/usb_defines.h
+        - path: ../USB/USB_DRIVE/inc/usb_regs.h
+        - path: ../USB/USB_DRIVE/src/usb_core.c
+        - path: ../USB/USB_DRIVE/src/usb_dcd.c
+        - path: ../USB/USB_DRIVE/src/usb_dcd_int.c
+      folders: []
+    - name: USB_UB
+      files:
+        - path: ../USB/USB_UB/inc/usbd_core.h
+        - path: ../USB/USB_UB/inc/usbd_def.h
+        - path: ../USB/USB_UB/inc/usbd_ioreq.h
+        - path: ../USB/USB_UB/inc/usbd_req.h
+        - path: ../USB/USB_UB/inc/usbd_usr.h
+        - path: ../USB/USB_UB/src/usbd_core.c
+        - path: ../USB/USB_UB/src/usbd_ioreq.c
+        - path: ../USB/USB_UB/src/usbd_req.c
+      folders: []
+    - name: USB_USER
+      files:
+        - path: ../USB/USB_USER/inc/usb_conf.h
+        - path: ../USB/USB_USER/inc/usbd_cdc_vcp.h
+        - path: ../USB/USB_USER/inc/usbd_conf.h
+        - path: ../USB/USB_USER/inc/usbd_desc.h
+        - path: ../USB/USB_USER/src/usb_bsp.c
+        - path: ../USB/USB_USER/src/usbd_cdc_vcp.c
+        - path: ../USB/USB_USER/src/usbd_desc.c
+        - path: ../USB/USB_USER/src/usbd_usr.c
+      folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: 9f9a15e4f84467b4048fe0fbfe492c15
+targets:
+  USMART:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F40_41xxx
+        - USE_STDPERIPH_DRIVER
+        - USE_STM324xG_EVAL
+        - USE_USB_OTG_FS
+      incList:
+        - ../CORE
+        - .
+        - ../USMART
+        - ../FWLIB/inc
+        - ../HARDWARE
+        - ../SYSTEM/delay
+        - ../SYSTEM/sys
+        - ../SYSTEM/usart
+        - ../FATFS/exfuns
+        - ../FATFS/doc
+        - ../FATFS/src
+        - ../FATFS
+        - ../USB/USB_BOARD
+        - ../USB/USB_CDC/inc
+        - ../USB/USB_DRIVE/inc
+        - ../USB/USB_UB/inc
+        - ../USB/USB_USER/inc
+        - ../APP
+        - ../SERVICE
+        - ../PLATFORM
+        - ../IMPLEMENT
+        - ../VENDOR
+        - .cmsis/include
+        - RTE/_USMART
+      libList: []
+    excludeList: []
+    settings:
+      debugger: cortex-debug
+    toolchain: AC6
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: unspecified
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x10000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+      AC6:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 3
+          afterBuildTasks: []
+          asm-compiler:
+            $use: asm-auto
+            misc-controls: ""
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            language-c: c99
+            language-cpp: c++11
+            link-time-optimization: false
+            optimization: level-0
+          global:
+            output-debug-info: enable
+            use-microLIB: false
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            misc-controls: --diag_suppress=L6329
+            output-format: elf
+        scatterFilePath: <YOUR_SCATTER_FILE>.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x100000"
+                startAddr: "0x08000000"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: STM32F407ZG
+          vendor: ST
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+    uploader: JLink
