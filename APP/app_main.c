@@ -206,10 +206,10 @@ void app_main(void)
          * interrupt wakes the core, then the next poll consumes O\0 and starts
          * TIM2 -> ADC -> DMA acquisition normally.
          */
-        if (adc_stream_service_can_sleep() != 0U) {
-            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-            __DSB();
-            app_cpu_wait_for_interrupt();
-        }
+//        if (adc_stream_service_can_sleep() != 0U) {
+//            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+//            __DSB();
+//            app_cpu_wait_for_interrupt();
+//        }
     }
 }
