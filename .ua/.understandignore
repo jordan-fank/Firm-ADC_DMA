@@ -24,6 +24,10 @@ USB/
 FATFS/
 CORE/
 
+# --- EIDE/VSCode 工具链携带的厂商 SDK（与 FWLIB 同类，保留 .eide/ 工程定义） ---
+USER/.cmsis/
+USER/.pack/
+
 # --- understand-anything 自身数据目录 ---
 .ua/
 

@@ -22,6 +22,10 @@ USER/RTE/
 .reasonix/
 .spec-workflow/
 
+# ===== EIDE/VSCode 工具链下载的厂商 SDK（ARM CMSIS + Keil DFP，可重新下载，不入库）=====
+USER/.cmsis/
+USER/.pack/
+
 # ===== understand-anything 的清理垃圾（保留图谱与基线数据）=====
 .ua/.trash-*/
 

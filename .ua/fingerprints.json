@@ -1,19 +1,19 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "68952905629d7509aab1c537560df5cd3315218e",
-  "generatedAt": "2026-10-16T00:39:35.745Z",
+  "gitCommitHash": "dd6103caddd77f1556beb6be428107fbbd19f06c",
+  "generatedAt": "2026-10-16T10:39:41.469Z",
   "files": {
     "APP/app_main.c": {
       "filePath": "APP/app_main.c",
-      "contentHash": "e43313f564141893555310c0adaad7409b2f67851891bc31fd0077c0789c0a1a",
+      "contentHash": "07782d872ba8284baa6863466e7a3df9a2e6e899440729644bb1cf092930190a",
       "functions": [
         {
           "name": "app_cpu_wait_for_interrupt",
           "owner": "",
           "params": [],
-          "returnType": "__asm",
+          "returnType": "void",
           "exported": false,
-          "lineCount": 5
+          "lineCount": 4
         },
         {
           "name": "app_debug_uart_init",
@@ -138,7 +138,7 @@
       "exports": [
         "app_main"
       ],
-      "totalLines": 216,
+      "totalLines": 215,
       "hasStructuralAnalysis": true
     },
     "APP/app_main.h": {
@@ -617,12 +617,12 @@
     },
     "README.md": {
       "filePath": "README.md",
-      "contentHash": "6333ecfad701b0ed0fbe7b40f1f833408f9e52af6b05bd529cc568a5bec921e6",
+      "contentHash": "764ffa0d22e5b7677b175ed84a3beeacc88c667d6224a6749fa7622579e62be0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 2,
+      "totalLines": 247,
       "hasStructuralAnalysis": false
     },
     "SERVICE/adc_stream_service.c": {
@@ -967,12 +967,38 @@
     },
     "SYSTEM/sys/sys.c": {
       "filePath": "SYSTEM/sys/sys.c",
-      "contentHash": "1eba3ab143e8668d55bc410fe30c3456d1a9b6c6f4b59534dfdee570c8d0bac4",
+      "contentHash": "0e6ba1e25e3ba93da4acc97dbc19eec17c069ffa285a0a83906d0001bcc10de4",
       "functions": [
         {
           "name": "WFI_SET",
           "owner": "",
           "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "INTX_DISABLE",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "INTX_ENABLE",
+          "owner": "",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "MSR_MSP",
+          "owner": "",
+          "params": [
+            "addr"
+          ],
           "returnType": "void",
           "exported": true,
           "lineCount": 4
@@ -988,9 +1014,12 @@
         }
       ],
       "exports": [
-        "WFI_SET"
+        "WFI_SET",
+        "INTX_DISABLE",
+        "INTX_ENABLE",
+        "MSR_MSP"
       ],
-      "totalLines": 56,
+      "totalLines": 53,
       "hasStructuralAnalysis": true
     },
     "SYSTEM/sys/sys.h": {
@@ -1023,9 +1052,59 @@
       "totalLines": 23,
       "hasStructuralAnalysis": true
     },
+    "USER/.clang-format": {
+      "filePath": "USER/.clang-format",
+      "contentHash": "e89f6be10d6c7cb649057f7df8039c264993bbd2123934f299524d4003361a90",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 21,
+      "hasStructuralAnalysis": false
+    },
+    "USER/.eide/eide.yml": {
+      "filePath": "USER/.eide/eide.yml",
+      "contentHash": "9a40f6e1970925fd76abedd2e96cd5825233af6794850c8faf8f77d9e6c3cc79",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 326,
+      "hasStructuralAnalysis": false
+    },
+    "USER/.eide/env.ini": {
+      "filePath": "USER/.eide/env.ini",
+      "contentHash": "231d03615da7e1346bce817292fbcd3cecc235b0500eaaca8ebe40193e1ddda3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": false
+    },
+    "USER/.eide/files.options.yml": {
+      "filePath": "USER/.eide/files.options.yml",
+      "contentHash": "808b74ec887565c706f3221d7f297d05fb5c03b96ca8d09de1febcdf29800d5f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 21,
+      "hasStructuralAnalysis": false
+    },
+    "USER/USMART.code-workspace": {
+      "filePath": "USER/USMART.code-workspace",
+      "contentHash": "18706bf93b50ae9b7014f1db5388a7abb936824285cb345ec1f6c2522d93180d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": false
+    },
     "USER/USMART.uvprojx": {
       "filePath": "USER/USMART.uvprojx",
-      "contentHash": "bbfc38604281b5436f7d700f3429b7ccfb9820134ca9869c3fd4564360de897c",
+      "contentHash": "dc42de6a98762ea9ab9ca1555660e8db2b9b69d5993f82066e7567f8a52c85fd",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1308,7 +1387,7 @@
     },
     "VENDOR/vendor_stm32_encoder_adc.c": {
       "filePath": "VENDOR/vendor_stm32_encoder_adc.c",
-      "contentHash": "6602cacf00707b6a6d89efc660601a71457b095e423914017d19b59550bb8127",
+      "contentHash": "ce04dd84c0867738c4c816efac6f953c729c358adbb114a97854c9aa70b76bb6",
       "functions": [
         {
           "name": "vendor_adc_reset_debug_counters",
@@ -1573,6 +1652,12 @@
           "specifiers": [
             "stm32f4xx.h"
           ]
+        },
+        {
+          "source": "sys.h",
+          "specifiers": [
+            "sys.h"
+          ]
         }
       ],
       "exports": [
@@ -1590,7 +1675,7 @@
         "vendor_stm32_encoder_adc_speed_irq_handler",
         "vendor_stm32_encoder_adc_z_irq_handler"
       ],
-      "totalLines": 854,
+      "totalLines": 856,
       "hasStructuralAnalysis": true
     },
     "VENDOR/vendor_stm32_encoder_adc.h": {
