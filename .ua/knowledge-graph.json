@@ -3,16 +3,18 @@
   "project": {
     "name": "MCU_revision1",
     "languages": [
-      "batch",
       "c",
+      "python",
+      "markup",
+      "yaml",
+      "batch",
       "markdown",
-      "txt",
-      "yaml"
+      "txt"
     ],
     "frameworks": [],
-    "description": "基于 STM32F407 的裸机固件，以编码器信号作为硬件触发源驱动 ADC 采样，采样数据经 DMA 双缓冲与两级环形队列缓冲后由 USB CDC 虚拟串口上传至上位机，并利用每转一次的 Z 相脉冲测量转速。工程采用 APP → SERVICE → PLATFORM ← IMPLEMENT → VENDOR 的分层多态架构，业务逻辑与 STM32 硬件完全解耦。",
-    "analyzedAt": "2026-10-16T10:39:13.765Z",
-    "gitCommitHash": "dd6103caddd77f1556beb6be428107fbbd19f06c"
+    "description": "STM32F407 编码器触发 ADC 采集与 USB CDC 上传固件，含 HOST 上位机工具",
+    "analyzedAt": "2026-10-21T02:30:35.704Z",
+    "gitCommitHash": "784b20ccd4ed673947183bb1202329bfd8df51fe"
   },
   "nodes": [
     {
@@ -20,14 +22,15 @@
       "type": "file",
       "name": "impl_stm32_board.c",
       "filePath": "IMPLEMENT/impl_stm32_board.c",
-      "summary": "IMPLEMENT 层的板级组装入口：把 ADC 采样流、USB 字节流与 USB 设备三个 platform 对象填入静态 platform_board_t，并通过 platform_board_get 对外暴露。",
+      "summary": "STM32 板级对象聚合入口：把编码器触发 ADC 采样流、USB CDC 字节流和 USB 设备三个实现对象填入静态 platform_board_t，供 service 层统一取用。",
       "tags": [
-        "入口点",
-        "板级组装",
-        "平台抽象",
-        "工厂"
+        "entry-point",
+        "板级抽象",
+        "对象聚合",
+        "platform-实现"
       ],
-      "complexity": "simple"
+      "complexity": "simple",
+      "languageNotes": "用静态 platform_board_t 缓存三个实现对象的指针，实现层与 service 层之间只通过该结构解耦。"
     },
     {
       "id": "function:IMPLEMENT/impl_stm32_board.c:platform_board_get",
@@ -38,11 +41,11 @@
         16,
         23
       ],
-      "summary": "service 层进入 implement 层的唯一板级入口，返回装配好的只读 platform_board_t 对象集合。",
+      "summary": "返回静态板级对象集合，并把 ADC 采样流、USB 字节流与 USB 设备三个实现对象绑定到该集合中。",
       "tags": [
-        "入口点",
-        "工厂",
-        "平台抽象"
+        "entry-point",
+        "对象聚合",
+        "platform-抽象"
       ],
       "complexity": "simple"
     },
@@ -51,16 +54,16 @@
       "type": "file",
       "name": "impl_stm32_encoder_adc.c",
       "filePath": "IMPLEMENT/impl_stm32_encoder_adc.c",
-      "summary": "STM32 编码器触发 ADC 采样流的 IMPLEMENT 实现：以 base 前置结构实现 C 语言多态，把 platform_adc_stream 操作表分发到 vendor 层，并把底层采样回调与中断桥接回 service。",
+      "summary": "编码器触发 ADC 的 platform 实现：通过 platform_adc_stream_ops_t 操作表把 init/start/stop/pause/resume 等调用转发给 vendor STM32 层，并桥接采样回调与导出启动文件需要的中断向量入口。",
       "tags": [
-        "平台抽象",
-        "适配器",
+        "platform-实现",
+        "adc-stream",
         "中断处理",
-        "DMA",
-        "多态"
+        "回调桥接",
+        "vendor-转发"
       ],
       "complexity": "complex",
-      "languageNotes": "使用 base 成员前置 + ops 虚表的手写 C 多态，实现层私有结构通过 stream->impl 反向取回，是裸机固件中常见的“继承”写法。"
+      "languageNotes": "以 base 结构体置于首位、配合静态 ops 表实现 C 语言版的多态分发，中断向量在 implement 层转接到 vendor 层。"
     },
     {
       "id": "function:IMPLEMENT/impl_stm32_encoder_adc.c:impl_stm32_encoder_adc_vendor_sample",
@@ -71,11 +74,11 @@
         89,
         105
       ],
-      "summary": "vendor 层采样回调到 platform/service 回调的桥接：仅在 RUNNING 状态且回调有效时转发采样数组。",
+      "summary": "vendor 采样回调到 platform 回调的桥接函数，仅在 RUNNING 状态且回调已注册时把采样数组转发给 service 层。",
       "tags": [
-        "回调桥接",
-        "数据转发",
-        "平台抽象"
+        "callback-bridge",
+        "采样转发",
+        "状态校验"
       ],
       "complexity": "simple"
     },
@@ -88,11 +91,11 @@
         114,
         139
       ],
-      "summary": "把 platform 采样配置翻译成 vendor 配置并注册采样回调，完成 ADC/TIM/DMA 初始化后进入 READY 状态。",
+      "summary": "把 platform 采样配置转换为 vendor 配置，注册 vendor 采样回调并初始化 vendor 层 ADC/TIM/DMA，成功后进入 READY 状态。",
       "tags": [
-        "初始化",
-        "配置映射",
-        "适配器"
+        "initialization",
+        "配置转换",
+        "vendor-转发"
       ],
       "complexity": "moderate"
     },
@@ -105,11 +108,11 @@
         147,
         162
       ],
-      "summary": "启动 vendor 层编码器触发 ADC 采样，并把状态切换到 RUNNING。",
+      "summary": "校验对象已初始化后启动 vendor 层采样，并把状态置为 RUNNING。",
       "tags": [
+        "生命周期",
         "状态机",
-        "适配器",
-        "生命周期"
+        "vendor-转发"
       ],
       "complexity": "simple"
     },
@@ -122,11 +125,11 @@
         170,
         185
       ],
-      "summary": "停止 vendor 层采样并把状态回退到 READY。",
+      "summary": "停止 vendor 层采样并把状态恢复为 READY，未初始化时返回 NOT_READY。",
       "tags": [
+        "生命周期",
         "状态机",
-        "适配器",
-        "生命周期"
+        "vendor-转发"
       ],
       "complexity": "simple"
     },
@@ -139,11 +142,11 @@
         193,
         208
       ],
-      "summary": "暂停新的 ADC 采样同时保持 TIM 转速计数连续，进入 PAUSED 状态。",
+      "summary": "暂停 ADC 采样并置为 PAUSED 状态，同时保持 TIM2/TIM5 转速计数继续运行。",
       "tags": [
+        "生命周期",
         "状态机",
-        "适配器",
-        "生命周期"
+        "暂停采样"
       ],
       "complexity": "simple"
     },
@@ -156,11 +159,11 @@
         216,
         231
       ],
-      "summary": "从 PAUSED 状态恢复 vendor 层 ADC 采样，重新进入 RUNNING。",
+      "summary": "仅允许从 PAUSED 状态恢复采样，调用 vendor 恢复接口并重新进入 RUNNING。",
       "tags": [
+        "生命周期",
         "状态机",
-        "适配器",
-        "生命周期"
+        "恢复采样"
       ],
       "complexity": "simple"
     },
@@ -173,11 +176,11 @@
         241,
         254
       ],
-      "summary": "保存 service 注册的 ADC 采样回调及其上下文，供 vendor 采样到达时回调。",
+      "summary": "保存 service 层注册的采样回调及其上下文，供 vendor 采样到达时调用。",
       "tags": [
-        "回调注册",
-        "适配器",
-        "平台抽象"
+        "callback-registration",
+        "回调管理",
+        "adc-stream"
       ],
       "complexity": "simple"
     },
@@ -190,11 +193,11 @@
         263,
         279
       ],
-      "summary": "从 vendor 层读取转速结果并转换成 platform 层的数据结构。",
+      "summary": "读取 vendor 层最近一次转速更新，并把 rpm 与 updated 标志转换为 platform 层数据结构。",
       "tags": [
+        "转速读取",
         "数据转换",
-        "转速",
-        "适配器"
+        "vendor-转发"
       ],
       "complexity": "simple"
     },
@@ -207,10 +210,11 @@
         287,
         296
       ],
-      "summary": "返回实现对象当前的 platform 采样流状态值。",
+      "summary": "返回实现对象当前状态；传入空指针时返回 ERROR 状态。",
       "tags": [
         "状态查询",
-        "适配器"
+        "状态机",
+        "防御式编程"
       ],
       "complexity": "simple"
     },
@@ -223,11 +227,11 @@
         303,
         307
       ],
-      "summary": "返回已绑定 ops 虚表的静态 platform ADC 采样流对象，供 service 层调用。",
+      "summary": "首次调用时绑定 ops 与 impl 指针，返回静态对象的 platform 基类指针供 service 层使用。",
       "tags": [
-        "入口点",
-        "工厂",
-        "平台抽象"
+        "entry-point",
+        "对象获取",
+        "延迟绑定"
       ],
       "complexity": "simple"
     },
@@ -240,11 +244,11 @@
         314,
         317
       ],
-      "summary": "ADC1 中断转接函数，直接转发至 vendor 层处理。",
+      "summary": "ADC1 中断转接函数，实际清标志与错误处理在 vendor 层完成。",
       "tags": [
         "中断处理",
-        "转发",
-        "平台抽象"
+        "中断转接",
+        "adc"
       ],
       "complexity": "simple"
     },
@@ -257,11 +261,11 @@
         324,
         327
       ],
-      "summary": "DMA2 Stream0 中断转接函数，转发至 vendor 层处理半满/满采样。",
+      "summary": "DMA2 Stream0 中断转接函数，vendor 层在半满/满中断中把采样值送入回调链。",
       "tags": [
         "中断处理",
-        "DMA",
-        "转发"
+        "中断转接",
+        "dma"
       ],
       "complexity": "simple"
     },
@@ -274,11 +278,11 @@
         334,
         337
       ],
-      "summary": "TIM2 编码器更新中断转接函数，转发至 vendor 层累计编码器计数。",
+      "summary": "TIM2 编码器更新中断转接函数，vendor 层在此累计编码器计数。",
       "tags": [
         "中断处理",
-        "转发",
-        "计时器"
+        "中断转接",
+        "编码器计数"
       ],
       "complexity": "simple"
     },
@@ -291,11 +295,11 @@
         344,
         347
       ],
-      "summary": "TIM3 旧版转速中断兼容转接入口；本版本的 Z 相测速不使用它。",
+      "summary": "TIM3 兼容性中断转接函数，把计数换算为转速；当前 Z 相测速方案不再使用该路径。",
       "tags": [
         "中断处理",
-        "兼容",
-        "转发"
+        "legacy",
+        "兼容入口"
       ],
       "complexity": "simple"
     },
@@ -308,11 +312,11 @@
         350,
         353
       ],
-      "summary": "PB12 Z 相 EXTI 中断转接函数，转发至 vendor 层做 Z 相周期测速。",
+      "summary": "把 PB12 Z 相索引脉冲的 EXTI 中断转发到 vendor 层，用于 Z 相测速。",
       "tags": [
         "中断处理",
-        "转速",
-        "转发"
+        "中断转接",
+        "z-phase"
       ],
       "complexity": "simple"
     },
@@ -325,11 +329,11 @@
         360,
         363
       ],
-      "summary": "启动向量表引用的 ADC1 中断入口，转调 implement 层处理函数，保持中断符号在 implement 层。",
+      "summary": "启动文件引用的 ADC1 中断向量入口，转接到 implement 层 ADC 中断处理函数。",
       "tags": [
-        "中断处理",
-        "启动向量",
-        "入口点"
+        "interrupt-vector",
+        "entry-point",
+        "中断入口"
       ],
       "complexity": "simple"
     },
@@ -342,11 +346,11 @@
         368,
         371
       ],
-      "summary": "启动向量表引用的 DMA2 Stream0 中断入口，转调 implement 层处理函数。",
+      "summary": "启动文件引用的 DMA2 Stream0 中断向量入口，转接到 implement 层 DMA 中断处理函数。",
       "tags": [
-        "中断处理",
-        "启动向量",
-        "DMA"
+        "interrupt-vector",
+        "entry-point",
+        "中断入口"
       ],
       "complexity": "simple"
     },
@@ -359,11 +363,11 @@
         376,
         379
       ],
-      "summary": "启动向量表引用的 TIM2 中断入口，转调 implement 层处理函数。",
+      "summary": "启动文件引用的 TIM2 中断向量入口，转接到编码器计数中断处理函数。",
       "tags": [
-        "中断处理",
-        "启动向量",
-        "计时器"
+        "interrupt-vector",
+        "entry-point",
+        "中断入口"
       ],
       "complexity": "simple"
     },
@@ -376,11 +380,11 @@
         384,
         387
       ],
-      "summary": "启动向量表引用的 TIM3 中断入口，属旧版兼容路径，本版本未启用。",
+      "summary": "启动文件引用的 TIM3 中断向量入口，当前版本未启用，仅保留兼容符号。",
       "tags": [
-        "中断处理",
-        "启动向量",
-        "兼容"
+        "interrupt-vector",
+        "legacy",
+        "兼容入口"
       ],
       "complexity": "simple"
     },
@@ -393,11 +397,11 @@
         390,
         393
       ],
-      "summary": "启动向量表引用的 PB12/EXTI12 中断入口，转调 Z 相脉冲处理函数。",
+      "summary": "PB12/EXTI12 Z 相索引脉冲的中断向量入口，转接到 Z 相中断处理函数。",
       "tags": [
-        "中断处理",
-        "启动向量",
-        "转速"
+        "interrupt-vector",
+        "entry-point",
+        "z-phase"
       ],
       "complexity": "simple"
     },
@@ -406,11 +410,12 @@
       "type": "file",
       "name": "impl_stm32_encoder_adc.h",
       "filePath": "IMPLEMENT/impl_stm32_encoder_adc.h",
-      "summary": "声明 STM32 编码器触发 ADC 采样流的 platform 对象获取接口，并暴露 DMA2 Stream0 中断转接入口。",
+      "summary": "声明编码器触发 ADC 实现的对外接口：获取 platform 采样流对象，以及 DMA2 Stream0 中断转接入口。",
       "tags": [
-        "头文件",
+        "type-definition",
         "接口声明",
-        "平台抽象"
+        "adc-stream",
+        "中断入口"
       ],
       "complexity": "simple"
     },
@@ -419,14 +424,15 @@
       "type": "file",
       "name": "impl_usb_cdc_device.c",
       "filePath": "IMPLEMENT/impl_usb_cdc_device.c",
-      "summary": "USB CDC 设备的 IMPLEMENT 实现：向 platform_usb_device 操作表挂载 init，并转调 vendor USB CDC 协议栈初始化。",
+      "summary": "USB CDC 设备 platform 实现：通过单元素 ops 表把设备初始化请求转发给 vendor USB CDC 协议栈，并提供静态设备对象的获取接口。",
       "tags": [
-        "平台抽象",
-        "适配器",
-        "USB-CDC",
-        "多态"
+        "platform-实现",
+        "usb-cdc",
+        "设备初始化",
+        "vendor-转发"
       ],
-      "complexity": "moderate"
+      "complexity": "moderate",
+      "languageNotes": "操作表只含一个 init 函数，展示最小化的 C 风格 vtable 绑定写法。"
     },
     {
       "id": "function:IMPLEMENT/impl_usb_cdc_device.c:impl_usb_cdc_device_init",
@@ -437,11 +443,11 @@
         41,
         50
       ],
-      "summary": "调用 vendor USB CDC 初始化协议栈，并把结果转换成统一的 platform 状态码。",
+      "summary": "调用 vendor USB CDC 设备初始化接口，并把 vendor 返回值统一转换为 platform 状态码。",
       "tags": [
-        "初始化",
-        "适配器",
-        "USB-CDC"
+        "initialization",
+        "usb-cdc",
+        "vendor-转发"
       ],
       "complexity": "simple"
     },
@@ -454,11 +460,11 @@
         57,
         61
       ],
-      "summary": "返回已绑定 ops 虚表的静态 platform USB 设备对象。",
+      "summary": "首次调用时绑定设备操作表，返回静态设备对象的 platform 基类指针。",
       "tags": [
-        "入口点",
-        "工厂",
-        "USB-CDC"
+        "entry-point",
+        "对象获取",
+        "延迟绑定"
       ],
       "complexity": "simple"
     },
@@ -467,11 +473,11 @@
       "type": "file",
       "name": "impl_usb_cdc_device.h",
       "filePath": "IMPLEMENT/impl_usb_cdc_device.h",
-      "summary": "声明 USB CDC 设备 platform 对象的获取接口。",
+      "summary": "声明获取 USB CDC 设备 platform 对象（platform_usb_device_t）的接口。",
       "tags": [
-        "头文件",
+        "type-definition",
         "接口声明",
-        "USB-CDC"
+        "usb-cdc"
       ],
       "complexity": "simple"
     },
@@ -480,15 +486,16 @@
       "type": "file",
       "name": "impl_usb_cdc_stream.c",
       "filePath": "IMPLEMENT/impl_usb_cdc_stream.c",
-      "summary": "USB CDC 字节流的 IMPLEMENT 实现：把 platform_byte_stream 的 init/send/set_rx_callback 分发到 vendor USB CDC，并把 vendor 状态码映射为 platform 统一状态码。",
+      "summary": "USB CDC 字节流 platform 实现：实现 init/send/set_rx_callback 操作表，把发送请求转发到 vendor 写入接口，并把 vendor 收到的数据桥接给 service 层回调。",
       "tags": [
-        "平台抽象",
-        "适配器",
-        "USB-CDC",
-        "状态映射",
-        "多态"
+        "platform-实现",
+        "byte-stream",
+        "usb-cdc",
+        "回调桥接",
+        "状态映射"
       ],
-      "complexity": "moderate"
+      "complexity": "moderate",
+      "languageNotes": "集中把 vendor_usb_cdc_status_t 映射为 platform_status_t，使 service 层不感知厂商错误码。"
     },
     {
       "id": "function:IMPLEMENT/impl_usb_cdc_stream.c:impl_usb_cdc_stream_map_status",
@@ -499,11 +506,11 @@
         70,
         82
       ],
-      "summary": "把 vendor_usb_cdc_status_t 枚举映射为统一的 platform_status_t。",
+      "summary": "把 vendor USB CDC 状态码（OK/BUSY/INVALID_PARAM）映射为 platform 统一状态码。",
       "tags": [
         "状态映射",
-        "适配器",
-        "错误处理"
+        "错误处理",
+        "抽象隔离"
       ],
       "complexity": "simple"
     },
@@ -516,11 +523,11 @@
         106,
         116
       ],
-      "summary": "向 vendor 层注册 RX 桥接回调，完成字节流的初始化。",
+      "summary": "初始化字节流对象，向 vendor 层注册 RX 桥接回调及其上下文。",
       "tags": [
-        "初始化",
-        "回调注册",
-        "适配器"
+        "initialization",
+        "callback-registration",
+        "usb-cdc"
       ],
       "complexity": "simple"
     },
@@ -533,11 +540,11 @@
         142,
         155
       ],
-      "summary": "保存 service 注册的 USB RX 回调及其上下文，供 vendor 收到数据时回调。",
+      "summary": "保存 service 层注册的 USB RX 回调及其上下文，供 vendor 接收数据时调用。",
       "tags": [
-        "回调注册",
-        "适配器",
-        "USB-CDC"
+        "callback-registration",
+        "回调管理",
+        "usb-cdc"
       ],
       "complexity": "simple"
     },
@@ -550,11 +557,11 @@
         162,
         166
       ],
-      "summary": "返回已绑定 ops 虚表的静态 platform 字节流对象。",
+      "summary": "首次调用时绑定字节流操作表，返回静态对象的 platform 基类指针。",
       "tags": [
-        "入口点",
-        "工厂",
-        "USB-CDC"
+        "entry-point",
+        "对象获取",
+        "延迟绑定"
       ],
       "complexity": "simple"
     },
@@ -563,41 +570,25 @@
       "type": "file",
       "name": "impl_usb_cdc_stream.h",
       "filePath": "IMPLEMENT/impl_usb_cdc_stream.h",
-      "summary": "声明 USB CDC 字节流 platform 对象的获取接口。",
+      "summary": "声明获取 USB CDC 字节流 platform 对象（platform_byte_stream_t）的接口。",
       "tags": [
-        "头文件",
+        "type-definition",
         "接口声明",
-        "USB-CDC"
+        "byte-stream"
       ],
       "complexity": "simple"
-    },
-    {
-      "id": "config:USER/.eide/eide.yml",
-      "type": "config",
-      "name": "eide.yml",
-      "filePath": "USER/.eide/eide.yml",
-      "summary": "EIDE 工程主定义文件，声明 ARMCLANG(AC6) 工具链目标 USMART、源文件虚拟分组树（virtualFolder）以及头文件搜索路径与宏定义；其分组结构与 Keil 工程 USER/USMART.uvprojx 的源组布局一一对应，是本次从 Keil MDK 迁移到 EIDE 工具链的核心工程描述。",
-      "tags": [
-        "configuration",
-        "build-system",
-        "toolchain",
-        "armclang",
-        "project-definition"
-      ],
-      "complexity": "complex",
-      "languageNotes": "通过 toolchainConfigMap 并列保存 AC5 与 AC6 两套工具链参数，可为每个工具链独立配置 storageLayout（IRAM/IROM 起始地址与容量）和 scatter 文件；AC6 目标启用 c99/c++11、level-0 优化并关闭 microLIB。"
     },
     {
       "id": "config:USER/.eide/env.ini",
       "type": "config",
       "name": "env.ini",
       "filePath": "USER/.eide/env.ini",
-      "summary": "EIDE 构建环境变量定义文件，为 USMART 工程设置 KEIL_OUTPUT_DIR=..\\OBJ，指定 Keil 目标文件的输出目录。",
+      "summary": "EIDE 生成的 Keil 目标环境变量文件，为 USMART 目标指定编译输出目录为 ..\\OBJ。",
       "tags": [
-        "configuration",
-        "build-system",
-        "environment",
-        "eide"
+        "构建配置",
+        "keil",
+        "环境变量",
+        "输出目录"
       ],
       "complexity": "simple"
     },
@@ -606,30 +597,29 @@
       "type": "config",
       "name": "files.options.yml",
       "filePath": "USER/.eide/files.options.yml",
-      "summary": "EIDE 按文件粒度追加编译选项的配置文件，顶部记录基于 micromatch 的模式语法说明；当前 USMART 目标下 files 与 virtualPathFiles 均为空，尚未为任何源文件配置独立编译参数。",
+      "summary": "EIDE 的按源文件追加编译选项配置模板；当前 version 2.1 下 USMART 目标未设置任何文件级覆盖选项。",
       "tags": [
-        "configuration",
-        "build-system",
-        "compiler-options",
-        "eide"
+        "构建配置",
+        "eide",
+        "编译选项",
+        "配置模板"
       ],
-      "complexity": "simple",
-      "languageNotes": "键名为 micromatch 通配模式（如 'src/*.c'、'!Application/*.c'），值为对应的编译器命令行选项，用于对特定源文件覆盖全局编译设置。"
+      "complexity": "simple"
     },
     {
       "id": "file:APP/app_main.c",
       "type": "file",
       "name": "app_main.c",
       "filePath": "APP/app_main.c",
-      "summary": "APP 层主入口：初始化 ADC 数据流服务、拉起 USART1 调试遥测，并在 while(1) 主循环里轮询 service 与遥测上报；主循环末尾的 WFI 休眠路径当前已注释。",
+      "summary": "APP 层业务编排入口：初始化 ADC 数据流服务与 USART1 调试遥测，并在主循环中持续轮询 service 和遥测；WFI 休眠分支当前已注释。",
       "tags": [
         "application-layer",
         "orchestration",
         "telemetry",
-        "uart",
         "main-loop"
       ],
-      "complexity": "moderate"
+      "complexity": "moderate",
+      "languageNotes": "旧版 CMSIS 头文件未提供 __WFI()，因此用 naked 内联汇编封装 WFI；调试行通过轮询 TXE 标志阻塞发送。"
     },
     {
       "id": "file:APP/app_main.h",
@@ -649,16 +639,14 @@
       "type": "file",
       "name": "platform_adc_stream.h",
       "filePath": "PLATFORM/platform_adc_stream.h",
-      "summary": "ADC 采样流的平台抽象接口（纯头文件）：定义生命周期状态枚举、采样流配置/转速结果结构体、采样回调类型，以及 init/start/stop/pause/resume/set_sample_callback/get_speed_update/get_state 的 ops 函数表。",
+      "summary": "ADC 采样流的平台抽象接口：定义生命周期状态、采样配置/转速结果结构体、采样回调类型，以及 init/start/stop/pause/resume/set_sample_callback/get_speed_update/get_state 的 ops 函数表。",
       "tags": [
         "platform-abstraction",
         "interface",
         "adc",
-        "hardware-abstraction",
-        "polymorphism"
+        "ops-table"
       ],
-      "complexity": "moderate",
-      "languageNotes": "用 C 实现多态：结构体内放置 const 函数指针表 ops 与 void* impl 私有指针，service 层只经 ops 分发，IMPLEMENT 层再向下转型取回具体实现。"
+      "complexity": "moderate"
     },
     {
       "id": "file:PLATFORM/platform_board.h",
@@ -668,7 +656,6 @@
       "summary": "板级对象集合接口：把当前板子绑定的 ADC 采样流、字节流、USB 设备三个抽象指针打包为 platform_board_t，并提供 platform_board_get() 作为 service 层的唯一取用入口。",
       "tags": [
         "platform-abstraction",
-        "interface",
         "board-support",
         "dependency-injection"
       ],
@@ -679,12 +666,12 @@
       "type": "file",
       "name": "platform_byte_stream.h",
       "filePath": "PLATFORM/platform_byte_stream.h",
-      "summary": "字节流抽象接口：统一 init/send/set_rx_callback 三个动作及接收回调类型，使 service 层不关心底层链路到底是 USB CDC 还是串口。",
+      "summary": "字节流抽象接口：统一 init/send/set_rx_callback 三个动作及接收回调类型，使 service 层不关心底层链路是 USB CDC 还是串口。",
       "tags": [
         "platform-abstraction",
         "interface",
-        "usb-cdc",
-        "hardware-abstraction"
+        "byte-stream",
+        "usb-cdc"
       ],
       "complexity": "moderate"
     },
@@ -711,7 +698,7 @@
         "platform-abstraction",
         "interface",
         "usb-device",
-        "hardware-abstraction"
+        "ops-table"
       ],
       "complexity": "simple"
     },
@@ -720,7 +707,7 @@
       "type": "document",
       "name": "README.md",
       "filePath": "README.md",
-      "summary": "项目总览文档，17 个小节覆盖功能特性、硬件平台与引脚分配、五层软件架构与依赖方向、数据通路、USB 通信协议（O\\0/C\\0 命令、ADC 数据流、9 字节转速帧）、目录结构、构建烧录与调试遥测字段说明。",
+      "summary": "项目总览文档，18 个小节覆盖功能特性、硬件平台与引脚分配、五层软件架构、数据通路、USB 通信协议（O\\0/C\\0 命令、ADC 数据流、9 字节转速帧）、目录结构、构建烧录、调试遥测与上位机用法。",
       "tags": [
         "documentation",
         "entry-point",
@@ -735,7 +722,7 @@
       "type": "file",
       "name": "adc_stream_service.c",
       "filePath": "SERVICE/adc_stream_service.c",
-      "summary": "SERVICE 层业务状态机与核心实现：以 RX(64B)/ADC(16KB) 两级环形队列解耦中断与主循环，解析上位机 O\\0/C\\0 命令，按 512B 分块把 ADC 原始字节经 USB CDC 上行，并按 500ms 周期发送 A5 5A 52 04 转速帧；队列水位过高或 USB 端点忙时暂停采样做背压保护。",
+      "summary": "SERVICE 层业务状态机与核心实现：以 RX(64 B)/ADC(16 KB) 两级环形队列解耦中断与主循环，解析上位机 O\\0/C\\0 命令，按 512 B 分块把 ADC 原始字节经 USB CDC 上行，并按 500 ms 周期发送 A5 5A 52 04 转速帧；队列高水位或 USB 端点忙时暂停采样做背压保护。",
       "tags": [
         "service",
         "state-machine",
@@ -744,14 +731,14 @@
         "usb-cdc"
       ],
       "complexity": "complex",
-      "languageNotes": "中断只入队、主循环只出队：ADC/DMA 中断回调与 USB 接收回调都只写环形队列，启动/停止采样等重操作全部推迟到 poll 中执行，避免在中断上下文做重活。"
+      "languageNotes": "单生产者/单消费者环形队列配合 ops 函数表多态；中断回调只负责入队，USB 发送与命令解析全部集中在主循环 poll 中。"
     },
     {
       "id": "file:SERVICE/adc_stream_service.h",
       "type": "file",
       "name": "adc_stream_service.h",
       "filePath": "SERVICE/adc_stream_service.h",
-      "summary": "ADC 数据流服务对外接口：定义服务状态枚举、统计结构体（已发送/丢弃字节、命令数、USB 忙返回与忙事件、暂停恢复次数、队列峰值），并导出 init/poll/start/stop/get_state/get_stats/get_queue_used/can_sleep 公开 API。",
+      "summary": "ADC 数据流服务对外接口：定义服务状态枚举、统计结构体（发送/丢弃字节、命令数、USB 忙返回与忙事件、暂停恢复次数、队列峰值），并导出 init/poll/start/stop/get_state/get_stats/get_queue_used/can_sleep 公开 API。",
       "tags": [
         "header",
         "service",
@@ -765,7 +752,7 @@
       "type": "file",
       "name": "delay.c",
       "filePath": "SYSTEM/delay/delay.c",
-      "summary": "基于 SysTick 的延时模块（正点原子外函数版本），提供 delay_init/delay_us/delay_ms/delay_xms，并保留 ucos 分支下的 SysTick_Handler 与调度锁实现。",
+      "summary": "基于 SysTick 的延时模块（正点原子外函数版本），提供 delay_init/delay_us/delay_xms/delay_ms，并保留 ucos 分支下的 SysTick_Handler 与调度锁实现。",
       "tags": [
         "board-support",
         "timing",
@@ -773,7 +760,7 @@
         "legacy"
       ],
       "complexity": "moderate",
-      "languageNotes": "delay_us/delay_ms 存在 ucos 与非 ucos 两套实现、由 OS_CRITICAL_METHOD 宏切换；本工程 SYSTEM_SUPPORT_UCOS 为 0，实际编译的是直接操作 SysTick->LOAD/VAL/CTRL 的非 ucos 分支。"
+      "languageNotes": "同时保留 ucosII 与非 OS 两套实现，由 OS_CRITICAL_METHOD/SYSTEM_SUPPORT_UCOS 条件编译；当前工程走非 OS 分支。"
     },
     {
       "id": "file:SYSTEM/delay/delay.h",
@@ -800,8 +787,7 @@
         "armclang",
         "system-control"
       ],
-      "complexity": "simple",
-      "languageNotes": "从 ARMCC 迁移到 ARMCLANG(AC6) 后，Thumb 指令不再支持在普通函数里嵌入内联汇编，故改用 __attribute__((naked)) 包裹 __asm volatile 并手动 bx lr 返回。"
+      "complexity": "simple"
     },
     {
       "id": "function:APP/app_main.c:app_debug_uart_init",
@@ -809,14 +795,13 @@
       "name": "app_debug_uart_init",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        21,
-        47
+        23,
+        49
       ],
       "summary": "把 PA9/PA10 复用为 USART1 并配置为 115200-8-N-1，仅用于调试遥测输出。",
       "tags": [
         "initialization",
         "uart",
-        "board-support",
         "telemetry"
       ],
       "complexity": "simple"
@@ -827,8 +812,8 @@
       "name": "app_debug_uart_write",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        49,
-        58
+        51,
+        60
       ],
       "summary": "轮询 TXE 标志逐字节阻塞发送缓冲区内容到 USART1。",
       "tags": [
@@ -844,8 +829,8 @@
       "name": "app_debug_line_u32",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        67,
-        80
+        69,
+        82
       ],
       "summary": "把 uint32 以十进制追加到遥测行缓冲区，先取余反序展开字符再回填，避免使用库函数。",
       "tags": [
@@ -861,8 +846,8 @@
       "name": "app_debug_uart_event",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        92,
-        101
+        94,
+        103
       ],
       "summary": "以 \"EV <event>\" 形式发送一行状态变化事件（如 START/STOP）。",
       "tags": [
@@ -878,8 +863,8 @@
       "name": "app_debug_uart_report",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        103,
-        149
+        105,
+        151
       ],
       "summary": "组装并输出一行 \"D ...\" 运行遥测：转速、DMA 半满/满中断计数、已产出样本数、队列水位与峰值、USB 忙计数、暂停恢复次数、丢样数、ADC 极值/溢出、DMA 错误计数、Z 相统计与硬件状态位掩码。",
       "tags": [
@@ -895,10 +880,10 @@
       "name": "app_debug_uart_poll",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        151,
-        177
+        153,
+        179
       ],
-      "summary": "轮询底层调试快照：检测采集启停沿并发出 START/STOP 事件，再按 1s 周期上报 D 遥测行。",
+      "summary": "轮询底层调试快照：检测采集启停沿并发出 START/STOP 事件，再按 1 s 周期上报 D 遥测行。",
       "tags": [
         "telemetry",
         "polling",
@@ -912,8 +897,8 @@
       "name": "app_main",
       "filePath": "APP/app_main.c",
       "lineRange": [
-        185,
-        214
+        187,
+        216
       ],
       "summary": "APP 层业务编排入口：先初始化 service 与调试串口、打印 BOOT 行，然后进入 while(1) 持续轮询 service 与遥测（WFI 休眠分支已注释）。",
       "tags": [
@@ -932,10 +917,11 @@
         102,
         111
       ],
-      "summary": "由 head/tail 下标计算环形队列中有效元素个数，是水位判断与背压保护的公共基础。",
+      "summary": "由 head/tail 下标计算环形队列有效字节数，是水位、背压与休眠判断的公共基础。",
       "tags": [
         "ring-buffer",
-        "utility"
+        "utility",
+        "queue"
       ],
       "complexity": "simple"
     },
@@ -948,11 +934,11 @@
         131,
         140
       ],
-      "summary": "经 platform 字节流发送一帧数据，遇 PLATFORM_BUSY 时计入 USB 忙返回次数并触发采样暂停保护。",
+      "summary": "通过 platform 字节流的 ops->send 发送一段数据，未初始化时返回 PLATFORM_NOT_READY。",
       "tags": [
         "usb-cdc",
-        "backpressure",
-        "error-handling"
+        "transport",
+        "io"
       ],
       "complexity": "simple"
     },
@@ -965,7 +951,7 @@
         148,
         159
       ],
-      "summary": "因 USB 端点忙或本地队列水位过高而暂停底层 ADC 采样触发，并累计暂停次数。",
+      "summary": "在 USB 端点忙或本地队列高水位时暂停底层 ADC 采样，保持 TIM2/TIM5 继续计数，并累计暂停次数。",
       "tags": [
         "backpressure",
         "adc",
@@ -982,7 +968,7 @@
         166,
         185
       ],
-      "summary": "发送压力缓解后恢复采样触发、清除连续忙标志并累计恢复次数。",
+      "summary": "当队列降到半满以下、且没有停止请求时恢复 ADC 采样，清除暂停标志并累计恢复次数。",
       "tags": [
         "backpressure",
         "adc",
@@ -999,7 +985,7 @@
         195,
         250
       ],
-      "summary": "中断路径上的批量入队：把一批 ADC 原始字节写入 16KB 环形队列，队列不足时丢弃剩余样本并计入丢样统计，水位越阈时立刻暂停采样。",
+      "summary": "ADC 中断路径的批量入队：把样本写入 16 KB 环形队列，空间不足则丢弃整批并暂停采样，接近高水位时提前背压。",
       "tags": [
         "ring-buffer",
         "interrupt",
@@ -1016,7 +1002,7 @@
         257,
         286
       ],
-      "summary": "从 ADC 队列按 TX_CHUNK_SIZE 上限连续取出可用数据搬到 tx_chunk 临时缓冲区，供一次 USB 批量发送。",
+      "summary": "从 ADC 队列按最多 512 字节搬到 tx_chunk 临时缓冲区，处理环形回绕，供一次 USB 批量发送。",
       "tags": [
         "ring-buffer",
         "batching",
@@ -1033,10 +1019,11 @@
         293,
         303
       ],
-      "summary": "一批数据成功写入 USB 发送环后推进 ADC 队列读指针，标记这些字节已被消费。",
+      "summary": "在数据成功写入 USB 发送环后推进 adc_tail，标记这些字节已被消费。",
       "tags": [
         "ring-buffer",
-        "usb-cdc"
+        "usb-cdc",
+        "acknowledgement"
       ],
       "complexity": "simple"
     },
@@ -1049,7 +1036,7 @@
         310,
         345
       ],
-      "summary": "poll 中的 ADC 发送主路径：准备分块数据、写入字节流，成功则推进读指针，失败则暂停采样以保护队列。",
+      "summary": "poll 中的 ADC 上行主路径：准备分块并发送到字节流；BUSY 时保持读指针不变留待重试，非 BUSY 错误则暂停采样。",
       "tags": [
         "usb-cdc",
         "data-pipeline",
@@ -1066,7 +1053,7 @@
         355,
         383
       ],
-      "summary": "组装并发送 9 字节转速帧（A5 5A 52 04 + rpm 小端 4 字节 + 累加校验），独立于 ADC 数据队列，不排队也不补发。",
+      "summary": "组装 9 字节转速帧（A5 5A 52 04 + uint32 小端 rpm + 累加校验）并直接发送，不进入 ADC 队列、不补发。",
       "tags": [
         "serialization",
         "communication-protocol",
@@ -1083,7 +1070,7 @@
         391,
         402
       ],
-      "summary": "停止请求后持续检查 ADC 队列，直到发空才清除 stop_requested，保证残余数据完整上行。",
+      "summary": "收到停止请求后持续检查 ADC 队列，直到残余数据全部发完才清除 stop_requested。",
       "tags": [
         "state-machine",
         "drain",
@@ -1100,7 +1087,7 @@
         409,
         428
       ],
-      "summary": "执行已完整解析的上位机命令：'O' 直接启动采集且不回传应答以免混入数据，'C' 立即停止底层采样并置停止请求等待队列排空。",
+      "summary": "执行完整命令：O 启动采集且不回传应答，C 立即停止底层采样并置停止请求等待队列排空。",
       "tags": [
         "command-parsing",
         "state-machine",
@@ -1117,7 +1104,7 @@
         437,
         453
       ],
-      "summary": "按 O\\0/C\\0 协议逐字节解析：先缓存命令字符，仅当随后收到 0x00 才执行，否则按新命令字符重新同步或丢弃。",
+      "summary": "逐字节解析 O\\0/C\\0 协议：先缓存命令字符，只有随后收到 0x00 才执行；其他字节会重置或重新同步。",
       "tags": [
         "command-parsing",
         "protocol",
@@ -1134,7 +1121,7 @@
         475,
         498
       ],
-      "summary": "按 500ms 周期查询 platform 层转速更新，有新结果则缓存并发送转速帧，USB 忙时直接跳过本次发送。",
+      "summary": "每次 poll 查询 platform 层转速更新，有新结果时缓存并发送转速帧；USB 忙则丢弃本帧。",
       "tags": [
         "speed-measurement",
         "polling",
@@ -1151,7 +1138,7 @@
         521,
         599
       ],
-      "summary": "从 platform_board_get() 取板级对象并做空指针校验，随后初始化字节流与 USB 设备、注册 RX 回调、配置并注册 ADC 采样流、复位各环形队列与统计计数。",
+      "summary": "从 platform_board_get() 获取板级对象并校验 ops，依次初始化字节流、USB 设备、注册 RX/采样回调、配置 ADC 采样流并复位队列与统计。",
       "tags": [
         "initialization",
         "dependency-injection",
@@ -1168,7 +1155,7 @@
         606,
         611
       ],
-      "summary": "service 层主循环轮询入口，依次处理 USB 命令解析、ADC 队列发送与转速更新三件事。",
+      "summary": "service 层轮询入口：依次处理 USB 命令、ADC 批量上行和转速更新。",
       "tags": [
         "polling",
         "main-loop",
@@ -1185,10 +1172,11 @@
         620,
         650
       ],
-      "summary": "清零统计与本地队列后调用 platform 采样流的 start ops，成功后进入 STREAMING 状态。",
+      "summary": "复位统计、队列与暂停标志后调用 platform ADC 流的 start ops，成功后进入 STREAMING。",
       "tags": [
         "state-machine",
-        "lifecycle"
+        "lifecycle",
+        "adc"
       ],
       "complexity": "moderate"
     },
@@ -1201,10 +1189,11 @@
         659,
         677
       ],
-      "summary": "调用 platform 采样流的 stop ops 阻止新采样并转入 STOPPED 状态，队列残余数据继续由 poll 发完。",
+      "summary": "调用 platform ADC 流的 stop ops 阻止新采样并进入 STOPPED，队列残余数据仍由 poll 继续发送。",
       "tags": [
         "state-machine",
-        "lifecycle"
+        "lifecycle",
+        "adc"
       ],
       "complexity": "moderate"
     },
@@ -1217,10 +1206,11 @@
         684,
         687
       ],
-      "summary": "返回 service 当前状态值。",
+      "summary": "返回 ADC 数据流服务当前状态。",
       "tags": [
         "accessor",
-        "state-machine"
+        "state-machine",
+        "status"
       ],
       "complexity": "simple"
     },
@@ -1233,10 +1223,11 @@
         694,
         697
       ],
-      "summary": "返回统计结构体的值拷贝快照，供遥测与上位机读取。",
+      "summary": "返回统计结构体的值拷贝快照，供 USART 遥测读取。",
       "tags": [
         "accessor",
-        "diagnostics"
+        "diagnostics",
+        "stats"
       ],
       "complexity": "simple"
     },
@@ -1249,7 +1240,7 @@
         699,
         704
       ],
-      "summary": "返回 ADC 环形队列当前占用字节数，供遥测显示与休眠条件判断使用。",
+      "summary": "返回 ADC 环形队列当前占用的字节数。",
       "tags": [
         "accessor",
         "ring-buffer",
@@ -1266,7 +1257,7 @@
         706,
         723
       ],
-      "summary": "判断 CPU 能否进入 Sleep：仅当服务处于 STOPPED 且 ADC 队列与 RX 队列均为空时才返回允许。",
+      "summary": "判断是否允许进入 Sleep：仅当服务已停止且 ADC/RX 队列均为空时返回 1。",
       "tags": [
         "low-power",
         "state-machine",
@@ -1283,7 +1274,7 @@
         735,
         753
       ],
-      "summary": "platform ADC 采样回调：校验状态后把样本批量推入 ADC 环形队列，绝不在该中断里直接发送 USB。",
+      "summary": "platform ADC 采样回调：仅在 STREAMING 状态把样本批量推入环形队列，不在中断中直接发送 USB。",
       "tags": [
         "interrupt",
         "callback",
@@ -1300,7 +1291,7 @@
         765,
         789
       ],
-      "summary": "USB 接收回调：只把收到的字节写入 RX 环形队列（队满即丢弃），命令解析留给 poll 执行。",
+      "summary": "USB 接收回调：把收到的字节写入 64 B RX 环形队列，队满即停止；命令解析延后到 poll。",
       "tags": [
         "interrupt",
         "callback",
@@ -1317,7 +1308,7 @@
         34,
         53
       ],
-      "summary": "把 SysTick 时钟源设为 HCLK/8 并计算 fac_us/fac_ms 分频因子；非 ucos 模式下不开启 SysTick 中断。",
+      "summary": "将 SysTick 时钟源设为 HCLK/8 并计算 us/ms 分频因子；当前非 ucos 分支不开启 SysTick 中断。",
       "tags": [
         "initialization",
         "systick",
@@ -1332,9 +1323,9 @@
       "filePath": "SYSTEM/delay/delay.c",
       "lineRange": [
         98,
-        115
+        111
       ],
-      "summary": "非 ucos 实现：直接装填 SysTick->LOAD 并轮询 COUNTFLAG 完成微秒级阻塞延时。",
+      "summary": "非 OS 实现：装填 SysTick->LOAD 后轮询 COUNTFLAG 完成微秒级阻塞延时。",
       "tags": [
         "timing",
         "systick",
@@ -1351,7 +1342,7 @@
         118,
         131
       ],
-      "summary": "以 SysTick 单次装填完成不超过 24 位量程的毫秒级阻塞延时。",
+      "summary": "以 SysTick 单次装填完成毫秒级阻塞延时，受 24 位 LOAD 量程限制。",
       "tags": [
         "timing",
         "systick",
@@ -1368,7 +1359,7 @@
         134,
         146
       ],
-      "summary": "非 ucos 实现：把毫秒按 540ms 分片反复调用 delay_xms，规避 24 位 SysTick 计数器的溢出上限。",
+      "summary": "把毫秒延时按 540 ms 分片反复调用 delay_xms，规避 SysTick 24 位计数器溢出。",
       "tags": [
         "timing",
         "systick",
@@ -1454,18 +1445,16 @@
         "header",
         "board-support",
         "bit-band",
-        "gpio",
-        "macro"
+        "gpio"
       ],
-      "complexity": "moderate",
-      "languageNotes": "位带别名把 GPIOn_ODR/IDR 的单个比特映射到别名区，使单比特读写成为一条普通访存指令，无需读改写。"
+      "complexity": "moderate"
     },
     {
       "id": "file:SYSTEM/usart/usart.c",
       "type": "file",
       "name": "usart.c",
       "filePath": "SYSTEM/usart/usart.c",
-      "summary": "休眠的遗留文件：整份 USART1 命令行调试实现（USART1_Init、USART1_IRQHandler 以及 D/V/d/v/R/r/U 协议解析、DM430_Control 调用）已被整体注释，文件中有效代码为零行，未参与构建。",
+      "summary": "休眠的遗留文件：整份 USART1 命令行调试实现（USART1_Init、USART1_IRQHandler 以及 D/V/d/v/R/r/U 协议解析、DM430_Control 调用）已被整体注释，当前无有效代码，也未加入 Keil 工程。",
       "tags": [
         "legacy",
         "dormant",
@@ -1473,18 +1462,19 @@
         "dead-code"
       ],
       "complexity": "moderate",
-      "languageNotes": "全部 214 行均为 // 注释，无可编译语句；其能力已由 APP/app_main.c 的调试遥测与 SERVICE 层的 O\\0/C\\0 命令协议取代。"
+      "languageNotes": "整份源文件被 // 注释，仅保留历史协议解析思路，不参与当前构建。"
     },
     {
       "id": "file:SYSTEM/usart/usart.h",
       "type": "file",
       "name": "usart.h",
       "filePath": "SYSTEM/usart/usart.h",
-      "summary": "遗留 USART 模块头文件，同样不参与当前构建，仅作占位。",
+      "summary": "遗留 USART 模块头文件，仍声明已失效的串口初始化、命令解析和发送函数及全局变量，当前仅作占位，不参与构建。",
       "tags": [
         "legacy",
         "dormant",
-        "header"
+        "header",
+        "placeholder"
       ],
       "complexity": "simple"
     },
@@ -1503,25 +1493,11 @@
       "complexity": "simple"
     },
     {
-      "id": "config:USER/USMART.code-workspace",
-      "type": "config",
-      "name": "USMART.code-workspace",
-      "filePath": "USER/USMART.code-workspace",
-      "summary": "VS Code 工作区配置：挂载工程根目录，指定 clangd 参数与 C/C++ 配置提供方为 EIDE，并推荐 ARM 调试、串口监视等扩展。",
-      "tags": [
-        "configuration",
-        "tooling",
-        "editor",
-        "development"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "config:USER/USMART.uvprojx",
       "type": "config",
       "name": "USMART.uvprojx",
       "filePath": "USER/USMART.uvprojx",
-      "summary": "Keil MDK 工程文件，定义源文件分组、包含路径、宏与编译选项；器件目标已由 STM32F407VETx 迁移到 STM32F407ZGTx（IROM 1MB / IRAM 128KB+64KB）。",
+      "summary": "Keil MDK 工程文件，定义 16 个源文件分组、包含路径、宏与编译选项；器件目标已由 STM32F407VETx 迁移到 STM32F407ZGTx（IROM 1 MB / IRAM 128 KB+64 KB）。",
       "tags": [
         "configuration",
         "build-system",
@@ -1530,7 +1506,7 @@
         "deployment"
       ],
       "complexity": "complex",
-      "languageNotes": "随器件迁移，编译工具链也从 ARMCC 切到 ARMCLANG(AC6)；Cpu 字段的 IROM 长度为 0x100000，对应 ZGTx 的 1MB Flash。"
+      "languageNotes": "工具链为 ARMCLANG(AC6)，宏包含 STM32F40_41xxx/USE_STDPERIPH_DRIVER/USE_USB_OTG_FS，包含路径覆盖 APP/SERVICE/PLATFORM/IMPLEMENT/VENDOR。"
     },
     {
       "id": "file:USER/main.c",
@@ -1559,7 +1535,7 @@
         "board-support"
       ],
       "complexity": "complex",
-      "languageNotes": "内容几乎全部是厂商生成的寄存器映射与位定义宏，不含业务逻辑，按文件级摘要处理即可，无需逐项枚举。"
+      "languageNotes": "内容几乎全部是厂商生成的寄存器映射与位定义宏，不含业务逻辑，按文件级摘要处理即可。"
     },
     {
       "id": "file:USER/stm32f4xx_conf.h",
@@ -1569,9 +1545,9 @@
       "summary": "ST 标准外设库配置头文件，集中 include 本项目启用的各外设驱动头（ADC/DMA/GPIO/RCC/TIM/USART/SYSCFG 等）并按器件宏条件裁剪，同时决定 assert_param 断言开关。",
       "tags": [
         "configuration",
-        "stmicroelectronics",
-        "build-system",
-        "header"
+        "stm32-spl",
+        "header",
+        "build-system"
       ],
       "complexity": "moderate"
     },
@@ -1587,7 +1563,8 @@
         "usb-otg",
         "board-support"
       ],
-      "complexity": "moderate"
+      "complexity": "moderate",
+      "languageNotes": "OTG_FS_IRQHandler 的符号名由 USE_USB_OTG_HS 条件编译决定，本工程定义 USE_USB_OTG_FS。"
     },
     {
       "id": "file:USER/stm32f4xx_it.h",
@@ -1607,15 +1584,16 @@
       "type": "file",
       "name": "system_stm32f4xx.c",
       "filePath": "USER/system_stm32f4xx.c",
-      "summary": "ST 官方系统时钟初始化源文件：SystemInit 复位时钟与向量表并调用 SetSysClock 完成时钟切换，SystemCoreClockUpdate 依据 RCC 寄存器回读刷新全局时钟频率变量。",
+      "summary": "CMSIS 系统启动源文件：复位后由启动代码调用 SystemInit，配置 144 MHz PLL 时钟（HSE 8 MHz、PLL_N=288、PLL_P=2）、Flash 等待周期与 AHB/APB 分频，并提供按 RCC 寄存器重算 SystemCoreClock 的接口。",
       "tags": [
-        "vendor",
-        "clock-configuration",
-        "startup",
-        "board-support"
+        "启动代码",
+        "时钟配置",
+        "cmsis",
+        "stm32f4",
+        "底层初始化"
       ],
       "complexity": "complex",
-      "languageNotes": "文件内大量 #ifdef 时钟分支（HSE_VALUE、PLL_M/N/P/Q、不同器件宏），实际生效路径由预处理宏选定，分析时按文件级摘要处理。"
+      "languageNotes": "以 STM32F40_41xxx 等条件编译宏覆盖多个 F4 子系列；默认走 HSE+PLL 路径，HSE 启动失败时静默回退 HSI。"
     },
     {
       "id": "function:USER/stm32f4xx_it.c:HardFault_Handler",
@@ -1691,7 +1669,7 @@
       "name": "OTG_FS_IRQHandler",
       "filePath": "USER/stm32f4xx_it.c",
       "lineRange": [
-        150,
+        152,
         156
       ],
       "summary": "USB OTG 全速中断入口，直接转发给 USB OTG 协议栈的 USBD_OTG_ISR_Handler 处理 CDC 端点事件。",
@@ -1711,13 +1689,13 @@
         417,
         456
       ],
-      "summary": "复位后设置向量表偏移与 RCC 初始状态、清除中断并使能 FPU，随后调用 SetSysClock 完成到目标主频的切换。",
+      "summary": "复位后由启动文件调用的 CMSIS 入口：使能 FPU、将 RCC 恢复默认状态、按需初始化外部存储器，随后调用 SetSysClock 建立系统时钟并设置向量表位置。",
       "tags": [
-        "initialization",
-        "clock-configuration",
-        "startup"
+        "启动入口",
+        "时钟配置",
+        "cmsis"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:USER/system_stm32f4xx.c:SystemCoreClockUpdate",
@@ -1728,10 +1706,11 @@
         494,
         554
       ],
-      "summary": "依据 RCC 寄存器实际值（PLL 倍频/分频、AHB/APB 预分频）反算并刷新全局 SystemCoreClock，供延时与波特率计算使用。",
+      "summary": "根据 RCC_CFGR 当前时钟源（HSI/HSE/PLL）及 PLL 分频寄存器重新计算并更新全局 SystemCoreClock，供 SysTick 与外设配置使用。",
       "tags": [
-        "clock-configuration",
-        "runtime-update"
+        "时钟计算",
+        "cmsis",
+        "系统状态"
       ],
       "complexity": "moderate"
     },
@@ -1744,11 +1723,11 @@
         564,
         772
       ],
-      "summary": "静态辅助函数：按预定义宏选择 HSE 起振、PLL 参数与分频链，把 SYSCLK 配置到目标频率。",
+      "summary": "按芯片系列宏选择时钟参数：启动 HSE、设置电压调节器与 AHB/APB 分频、写入 PLL 系数并把 SYSCLK 切换到 PLL，等待锁定失败时保留 HSI 运行。",
       "tags": [
-        "clock-configuration",
-        "static-helper",
-        "startup"
+        "时钟配置",
+        "pll",
+        "底层初始化"
       ],
       "complexity": "complex"
     },
@@ -1764,7 +1743,8 @@
       "summary": "固件 C 入口函数，只调用 app_main() 后 return 0，业务编排完全交给 APP 层。",
       "tags": [
         "entry-point",
-        "bootstrap"
+        "bootstrap",
+        "startup"
       ],
       "complexity": "simple"
     },
@@ -1773,42 +1753,39 @@
       "type": "file",
       "name": "system_stm32f4xx.h",
       "filePath": "USER/system_stm32f4xx.h",
-      "summary": "STM32F4xx 的 CMSIS 系统头文件，仅对外声明 SystemCoreClock 时钟变量与 SystemInit/SystemCoreClockUpdate 两个启动函数，供顶层 SYSTEM 模块引用。",
+      "summary": "声明 CMSIS 系统接口：全局 SystemCoreClock 变量以及 SystemInit、SystemCoreClockUpdate 两个函数，供启动文件和各层代码引用。",
       "tags": [
+        "头文件",
         "cmsis",
-        "type-definition",
-        "启动代码",
-        "stm32f4xx"
+        "接口声明",
+        "时钟配置"
       ],
-      "complexity": "simple",
-      "languageNotes": "标准 CMSIS 设备头文件写法：只用 extern 声明变量与函数而不给出定义，并以 __cplusplus 守卫兼容 C++ 调用。"
+      "complexity": "simple"
     },
     {
       "id": "document:USMART/readme.txt",
       "type": "document",
       "name": "readme.txt",
       "filePath": "USMART/readme.txt",
-      "summary": "USMART V3.1 串口调试组件的版本更新日志与使用说明（ALIENTEK 出品），逐版记录了 V1.4 至 V3.1 期间新增的 dec/hex 转换、runtime 计时、list/id 指令等功能。",
+      "summary": "USMART V3.1 串口命令行调试组件的版本更新说明，记录 V1.4 至 V3.1 期间新增的 hex/dec 转换、id/list 指令、read_addr/write_addr 与 runtime 统计等功能。组件本身未参与本工程编译。",
       "tags": [
-        "documentation",
-        "changelog",
-        "串口调试",
-        "legacy"
+        "文档",
+        "usmart",
+        "版本记录",
+        "调试工具"
       ],
-      "complexity": "simple",
-      "languageNotes": "文件为 GBK 编码，在 UTF-8 环境下显示为乱码，阅读时需按 GB2312 解码。"
+      "complexity": "simple"
     },
     {
       "id": "file:USMART/usmart.c",
       "type": "file",
       "name": "usmart.c",
       "filePath": "USMART/usmart.c",
-      "summary": "USMART 串口调试组件的占位实现文件，12 行全为空行，真正的实现已从工程中移除；该模块不参与 Keil 构建。",
+      "summary": "空文件，仅有空白行，是 ALIENTEK USMART 调试组件的源码占位；当前工程未将其纳入编译。",
       "tags": [
-        "placeholder",
-        "legacy",
-        "dead-code",
-        "串口调试"
+        "遗留代码",
+        "空文件",
+        "usmart"
       ],
       "complexity": "simple"
     },
@@ -1817,26 +1794,26 @@
       "type": "file",
       "name": "usmart.h",
       "filePath": "USMART/usmart.h",
-      "summary": "USMART 串口调试组件的主头文件，定义了函数名表 struct _m_usmart_nametab 与设备控制块 struct _m_usmart_dev、各类返回码宏，并声明 usmart_init/usmart_exe/usmart_scan/read_addr 等对外接口；当前构型下已休眠，未被编译进固件。",
+      "summary": "USMART 串口命令行调试组件的公共头文件：定义 MAX_PARM/PARM_LEN 等配置宏、函数注册表与设备状态结构体，并声明初始化、命令识别、执行、扫描和地址读写接口。当前工程未编译使用。",
       "tags": [
-        "type-definition",
-        "串口调试",
-        "dead-code",
-        "legacy"
+        "遗留代码",
+        "调试工具",
+        "接口声明",
+        "头文件"
       ],
-      "complexity": "simple"
+      "complexity": "moderate"
     },
     {
       "id": "file:USMART/usmart_config.c",
       "type": "file",
       "name": "usmart_config.c",
       "filePath": "USMART/usmart_config.c",
-      "summary": "USMART 的函数注册表与设备控制块配置模板，整文件连同 LCD/延时示例函数的注册项都被注释保留，属于历史遗留代码，不参与构建。",
+      "summary": "整文件被注释掉的 USMART 配置模板，原本用于填充 usmart_nametab 函数注册表和 usmart_dev 设备实例；当前没有可编译代码。",
       "tags": [
-        "configuration",
-        "dead-code",
-        "legacy",
-        "串口调试"
+        "遗留代码",
+        "配置模板",
+        "已注释",
+        "usmart"
       ],
       "complexity": "simple"
     },
@@ -1845,27 +1822,26 @@
       "type": "file",
       "name": "usmart_str.c",
       "filePath": "USMART/usmart_str.c",
-      "summary": "USMART 字符串解析功能的源码，426 行内容（含两行被注释的 include）整体处于注释状态，已从构建中剔除，仅作历史参考保留。",
+      "summary": "USMART 字符串解析实现，包含字符串比较/拷贝/长度、十六进制转数字、命令名与参数解析等函数，但整个文件已被注释掉，当前不参与编译。",
       "tags": [
-        "dead-code",
-        "legacy",
-        "串口调试",
-        "parsing"
+        "遗留代码",
+        "已注释",
+        "字符串解析",
+        "usmart"
       ],
-      "complexity": "simple",
-      "languageNotes": "整文件按行注释而非条件编译屏蔽，因此行数可观但有效代码为零，静态解析器提取不到任何函数。"
+      "complexity": "moderate"
     },
     {
       "id": "file:USMART/usmart_str.h",
       "type": "file",
       "name": "usmart_str.h",
       "filePath": "USMART/usmart_str.h",
-      "summary": "USMART 字符串解析工具的接口头文件，声明 usmart_str2num、usmart_strcmp、usmart_pow、usmart_get_cmdname、usmart_get_fparam 等解析函数；其对应的实现文件已整体注释。",
+      "summary": "声明 USMART 字符串处理辅助接口（比较、字符串转数字、命令名/函数名/参数解析），并包含 stm32f4xx.h 以获得 u8/u32 类型。",
       "tags": [
-        "type-definition",
-        "dead-code",
-        "legacy",
-        "parsing"
+        "遗留代码",
+        "接口声明",
+        "字符串处理",
+        "头文件"
       ],
       "complexity": "simple"
     },
@@ -1874,28 +1850,28 @@
       "type": "file",
       "name": "vendor_stm32_encoder_adc.c",
       "filePath": "VENDOR/vendor_stm32_encoder_adc.c",
-      "summary": "VENDOR 层最核心的驱动实现：PA5 经 TIM2_CH1 单边沿捕获，每个上升沿触发一次 ADC1 采样，采样值由 DMA2 Stream0 双缓冲搬运并在半满/满中断里分块回调给上层；同时以 1 MHz 自由运行的 TIM5 作时间戳、用 PB12/EXTI12 的 Z 相脉冲测量转速，并维护一整组可原子快照的调试计数器。",
+      "summary": "编码器触发 ADC 采集的 vendor 层驱动：PA5 上升沿经 TIM2_CH1 输入捕获产生 TRGO 触发 ADC1（PA2/CH2，8 bit），DMA2 Stream0 以 1024 点循环缓冲在半球/满中断上送采样；PB12 下降沿 EXTI12 配合 TIM5 1 MHz 时基测量每转周期并换算 RPM。",
       "tags": [
-        "driver",
-        "数据采集",
-        "dma",
+        "vendor层",
+        "adc-dma",
+        "编码器",
         "中断处理",
-        "adc"
+        "设备驱动"
       ],
       "complexity": "complex",
-      "languageNotes": "临界区已由 __disable_irq()/__enable_irq() 内建函数迁移到 sys.h 的 INTX_DISABLE()/INTX_ENABLE() 宏，因为 ARMCLANG(AC6) 不再提供这两个内建函数；全部调试计数器加 volatile 并在中断屏蔽下整体拷贝，保证前台 UART 日志不会读到半更新的中断统计。"
+      "languageNotes": "TIM2 不使用 PA5 作为计数时钟，而是以输入捕获事件经 OC1 比较脉冲输出 TRGO，这是单边沿触发 ADC 的关键配置；调试接口通过 INTX_DISABLE 临界区保证快照一致。"
     },
     {
       "id": "file:VENDOR/vendor_stm32_encoder_adc.h",
       "type": "file",
       "name": "vendor_stm32_encoder_adc.h",
       "filePath": "VENDOR/vendor_stm32_encoder_adc.h",
-      "summary": "编码器触发 ADC 驱动的对外接口头文件，定义状态码、采样回调、初始化配置、转速结果与调试快照五种类型，并声明初始化/启停/暂停恢复/状态查询及各中断入口。",
+      "summary": "定义编码器 ADC vendor 层的状态码、采样回调、初始化配置、转速结果与调试快照结构体，并声明初始化/启停/暂停/回调注册/转速读取及五个中断入口。",
       "tags": [
-        "type-definition",
-        "driver",
+        "头文件",
         "接口声明",
-        "数据采集"
+        "数据模型",
+        "vendor层"
       ],
       "complexity": "moderate"
     },
@@ -1904,26 +1880,27 @@
       "type": "file",
       "name": "vendor_usb_cdc.c",
       "filePath": "VENDOR/vendor_usb_cdc.c",
-      "summary": "USB CDC 虚拟串口的 VENDOR 层封装：初始化 USBD 协议栈、提供带环形缓冲的发送接口，并把 USB 类驱动收到的 OUT 数据转交给注册的接收回调。",
+      "summary": "USB CDC vendor 层驱动：初始化 ST USB Device 协议栈，向 CDC 类驱动的发送环形缓冲区写入数据（支持回卷与 BUSY 返回），并提供 USB OUT 数据回调的注册与分发。",
       "tags": [
-        "driver",
-        "usb",
-        "虚拟串口",
-        "通信"
+        "vendor层",
+        "usb-cdc",
+        "环形缓冲",
+        "设备驱动"
       ],
-      "complexity": "moderate"
+      "complexity": "moderate",
+      "languageNotes": "直接复用 ST CDC 类驱动的 APP_Rx_Buffer/APP_Rx_ptr_in/APP_Rx_ptr_out；先完成两段 memcpy 再原子发布写指针，避免 USB 中断读到半写数据。"
     },
     {
       "id": "file:VENDOR/vendor_usb_cdc.h",
       "type": "file",
       "name": "vendor_usb_cdc.h",
       "filePath": "VENDOR/vendor_usb_cdc.h",
-      "summary": "USB CDC 驱动对外接口头文件，定义状态码与接收回调类型，并声明设备初始化、数据写入、接收回调注册与发送缓冲查询接口。",
+      "summary": "声明 USB CDC vendor 层状态码、接收回调类型以及设备初始化、写入、回调注册、接收入口和发送剩余空间查询接口。",
       "tags": [
-        "type-definition",
-        "usb",
+        "头文件",
         "接口声明",
-        "通信"
+        "usb-cdc",
+        "vendor层"
       ],
       "complexity": "simple"
     },
@@ -1932,15 +1909,13 @@
       "type": "file",
       "name": "keilkilll.bat",
       "filePath": "keilkilll.bat",
-      "summary": "Keil MDK 工程垃圾文件清理脚本，递归删除 .bak/.obj/.axf/.map/.crf 等编译中间产物与 JLink 日志，用于把工程目录还原成可直接打包提交的干净状态。",
+      "summary": "Windows 批处理清理脚本，递归删除 Keil MDK 工程产生的 .o/.d/.axf/.map/.lst/.crf/.dep 等中间与输出文件及 JLinkLog.txt，便于打包或重新构建。",
       "tags": [
-        "build-system",
-        "清理脚本",
-        "工具",
-        "keil"
+        "构建清理",
+        "批处理",
+        "开发工具"
       ],
-      "complexity": "simple",
-      "languageNotes": "批处理脚本用逐条 del /s 递归清理；其中删除 *.opt 的一行被注释保留，以免误删 JLink 配置。"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_adc_reset_debug_counters",
@@ -1951,11 +1926,11 @@
         61,
         75
       ],
-      "summary": "清零全部 ADC/DMA/Z 相调试计数器与采样统计量，在每次启动采集时复位，保证快照数据只反映本轮采集。",
+      "summary": "清零 DMA 半满/满、采样上送、Z 中断与三类 DMA 错误计数，并把 ADC 最小值初始化为 0xFF、最大值/末值清零。",
       "tags": [
-        "调试",
-        "计数器",
-        "初始化"
+        "调试统计",
+        "复位",
+        "诊断"
       ],
       "complexity": "simple"
     },
@@ -1968,11 +1943,11 @@
         140,
         169
       ],
-      "summary": "把 DMA 双缓冲中指定偏移起的一段采样从 16bit 原始值压成 8bit 数组，再整块回调给上层 service。",
+      "summary": "从 DMA 环形缓冲指定偏移取出不超过半缓冲的采样，掩码成 8 bit、更新最值统计后通过注册回调整块上送。",
       "tags": [
-        "数据搬运",
-        "回调",
-        "dma"
+        "数据上送",
+        "dma",
+        "adc"
       ],
       "complexity": "simple"
     },
@@ -1985,9 +1960,9 @@
         176,
         198
       ],
-      "summary": "按环形缓冲区语义把一段可能跨环尾的采样区间拆成至多两段，依次调用 vendor_adc_emit_dma_samples 发出。",
+      "summary": "把一段可能跨越环形缓冲末尾的采样范围拆成连续块，逐块调用 emit_dma_samples，必要时按半球大小切分。",
       "tags": [
-        "数据搬运",
+        "数据上送",
         "环形缓冲",
         "dma"
       ],
@@ -2002,10 +1977,10 @@
         205,
         222
       ],
-      "summary": "依据已发送游标与 DMA 当前写入位置，把尚未提交的尾部采样补齐发出，stop 时据此刷新 DMA 中的残留数据。",
+      "summary": "把发送游标推进到 DMA 当前写位置并上送其间采样；中断路径与停止路径共用同一游标，保证每个采样只上送一次。",
       "tags": [
-        "数据搬运",
-        "环形缓冲",
+        "数据上送",
+        "游标管理",
         "dma"
       ],
       "complexity": "simple"
@@ -2019,10 +1994,11 @@
         227,
         272
       ],
-      "summary": "配置 PA5 为 TIM2_CH1 复用输入、PA4 相位 A、PA2 模拟输入与 PB12 输入，并开启 GPIOA/GPIOB 时钟。",
+      "summary": "配置 GPIOA/GPIOB：PA5 复用为 TIM2_CH1、PA4 为相 A 电平输入、PA2 为 ADC 模拟输入、PB11 输出使能新板 3 V 电源、PB12 接收低有效 Z 脉冲。",
       "tags": [
-        "gpio",
-        "外设配置"
+        "gpio配置",
+        "引脚映射",
+        "底层初始化"
       ],
       "complexity": "simple"
     },
@@ -2035,13 +2011,13 @@
         284,
         322
       ],
-      "summary": "把 TIM2 配成单边沿输入捕获，每个上升沿经 TRGO 输出触发信号驱动 ADC，同时禁用该通道中断以免重复触发。",
+      "summary": "将 TIM2 配为 32 位自由运行计数器，CH1 以 TI1 上升沿直接输入捕获，MMS=OC1 使每次捕获产生 TRGO 脉冲触发 ADC；同时关闭 TIM2 中断并清零计数器。",
       "tags": [
-        "定时器",
+        "tim2",
         "输入捕获",
-        "触发源"
+        "adc触发"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_adc_config_tim5_timestamp",
@@ -2052,11 +2028,11 @@
         327,
         343
       ],
-      "summary": "把 TIM5 配成预分频到 1 MHz 的自由运行计数器，作为 Z 相测速的时间戳时基。",
+      "summary": "把 TIM5 配置为 1 MHz（72 MHz/72）、32 位自由运行计数器，作为 Z 相边沿的微秒级时间戳来源。",
       "tags": [
-        "定时器",
-        "时间戳",
-        "测速"
+        "tim5",
+        "时基",
+        "z相测速"
       ],
       "complexity": "simple"
     },
@@ -2069,13 +2045,13 @@
         346,
         368
       ],
-      "summary": "配置 PB12/EXTI12 为下降沿触发中断并设定 NVIC 优先级，用于捕获每转一次的 Z 相脉冲。",
+      "summary": "将 PB12 映射到 EXTI12 并配置下降沿中断，NVIC 优先级取 DMA 优先级加一（低一级），避免 Z 相中断抢占采样搬运。",
       "tags": [
-        "中断配置",
-        "exti",
-        "测速"
+        "exti配置",
+        "中断优先级",
+        "z相测速"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_adc_config_dma_irq",
@@ -2086,10 +2062,10 @@
         377,
         387
       ],
-      "summary": "设置 DMA2 Stream0 中断的 NVIC 使能与抢占/子优先级。",
+      "summary": "使能 DMA2 Stream0 的 NVIC 中断通道，并设置最高抢占优先级与子优先级。",
       "tags": [
-        "中断配置",
         "dma",
+        "中断配置",
         "nvic"
       ],
       "complexity": "simple"
@@ -2103,13 +2079,13 @@
         389,
         424
       ],
-      "summary": "初始化 DMA2 Stream0，把 ADC1 数据寄存器循环搬到双缓冲数组，开启半满/满及三类错误中断后使能通道。",
+      "summary": "配置 DMA2 Stream0 通道 0 将 ADC1->DR 循环搬运 1024 个半字到双缓冲，启用半满/完成/传输错误/直接模式错误中断，并先设定 NVIC 优先级分组。",
       "tags": [
-        "dma",
-        "双缓冲",
-        "外设配置"
+        "dma配置",
+        "环形缓冲",
+        "adc"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_adc_config_adc1",
@@ -2120,12 +2096,13 @@
         431,
         462
       ],
-      "summary": "初始化 ADC1（单通道规则转换、56 周期采样时间），使能 EOC/OVR 中断与 DMA 请求，并允许末次传输后继续发请求。",
+      "summary": "配置 ADC1 为独立模式、8 bit、单通道 CH2、56 周期采样，由 TIM2_TRGO 上升沿触发单次转换并使能 DMA 请求，EOC/OVR 中断保持关闭。",
       "tags": [
-        "adc",
-        "外设配置"
+        "adc配置",
+        "外部触发",
+        "8bit"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_init",
@@ -2136,13 +2113,13 @@
         470,
         500
       ],
-      "summary": "整套采集链路的初始化入口：先归一化配置参数与复位计数器，再依次配置 GPIO、TIM2、TIM5、DMA、ADC1 和 Z 相中断。",
+      "summary": "校验配置指针并归一化触发计数与上报周期，复位采集状态、发送游标和调试统计，然后依次配置 GPIO、TIM2、TIM5、DMA、ADC1 与 Z 相 EXTI。",
       "tags": [
         "初始化",
-        "入口函数",
-        "driver"
+        "adc-dma",
+        "外设配置"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_start",
@@ -2153,13 +2130,13 @@
         508,
         547
       ],
-      "summary": "清空各路挂起标志、复位调试计数器与 TIM 计数器后，按 DMA→ADC→TIM 的顺序上电启动采样与测速。",
+      "summary": "按 DMA→ADC→TIM5→TIM2 的顺序启动采集：先关闭并复位相关外设、清除全部挂起标志和发送游标，再使能 DMA 中断与外设，确保首个 PA5 边沿到来前通路已就绪。",
       "tags": [
         "启动",
-        "入口函数",
-        "dma"
+        "adc-dma",
+        "中断使能"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_stop",
@@ -2170,13 +2147,13 @@
         554,
         597
       ],
-      "summary": "停止 TIM/ADC/DMA 后，由 NDTR 与发送游标推算出尚未提交的采样区间并补发，最后清理 DMA/EXTI 挂起标志。",
+      "summary": "停止采样：关闭 TIM2/TIM5/ADC/DMA 与 DMA 中断，依据 NDTR 与发送游标把 DMA 中尚未上送的尾部采样补齐送出，然后清理半满/完成/错误挂起标志。",
       "tags": [
         "停止",
-        "数据刷新",
-        "dma"
+        "adc-dma",
+        "数据上送"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_pause",
@@ -2187,10 +2164,11 @@
         604,
         607
       ],
-      "summary": "仅关闭 ADC 触发采样以暂停数据产生，同时保持 TIM2/TIM5 计数连续，便于之后原样恢复。",
+      "summary": "仅关闭 ADC1 以暂停新采样，保留 TIM2/TIM5 继续运行，从而不打断转速测量的时间连续性。",
       "tags": [
         "暂停",
-        "adc"
+        "adc",
+        "运行控制"
       ],
       "complexity": "simple"
     },
@@ -2203,10 +2181,11 @@
         614,
         619
       ],
-      "summary": "清除 ADC 的 EOC/OVR 挂起标志并重新使能 ADC，恢复采样。",
+      "summary": "清除 ADC EOC/OVR 挂起标志后重新使能 ADC1，与 pause 配对恢复采样。",
       "tags": [
         "恢复",
-        "adc"
+        "adc",
+        "运行控制"
       ],
       "complexity": "simple"
     },
@@ -2219,10 +2198,11 @@
         627,
         632
       ],
-      "summary": "注册采样块回调函数及其上下文，中断中按块把数据回调给 service 层。",
+      "summary": "保存上层注册的采样块回调及其上下文，供 DMA 半满/满中断和停止时上送数据使用。",
       "tags": [
         "回调注册",
-        "api"
+        "adc-dma",
+        "接口"
       ],
       "complexity": "simple"
     },
@@ -2235,13 +2215,13 @@
         642,
         677
       ],
-      "summary": "在关中断的临界区内检查 Z 相超时（超时即判定停转并把转速置 0），随后一次性读出并清除转速更新标志，避免与中断竞态误报 0 RPM。",
+      "summary": "在关中断临界区内用 TIM5 时间戳判断是否超过上报周期无 Z 边沿（视为停转），输出 RPM 与一次性 updated 标志并清零该标志。",
       "tags": [
-        "测速",
+        "转速读取",
         "临界区",
-        "api"
+        "z相测速"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_get_debug",
@@ -2252,13 +2232,13 @@
         679,
         715
       ],
-      "summary": "关中断后把转速、DMA/TIM 计数、NDTR 剩余量、ADC 最值/溢出状态与相位电平一次性拷贝成调试快照，供前台 UART 日志安全读取。",
+      "summary": "关中断拷贝一份一致的调试快照：RPM、DMA 半球/满与错误计数、ADC 最值/溢出、NDTR、TIM2 捕获寄存器及各外设使能状态。",
       "tags": [
-        "调试",
-        "快照",
+        "调试快照",
+        "诊断",
         "临界区"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_stm32_encoder_adc.c:vendor_stm32_encoder_adc_adc_irq_handler",
@@ -2269,10 +2249,11 @@
         722,
         731
       ],
-      "summary": "ADC1 中断入口，只清除 EOC/OVR 标志防止中断挂死，实际采样搬运已交由 DMA 完成。",
+      "summary": "ADC1 中断入口：数据实际由 DMA 搬运，这里仅检查并清除 EOC/OVR 标志，防止中断挂死。",
       "tags": [
-        "中断处理",
-        "adc"
+        "中断服务",
+        "adc",
+        "错误处理"
       ],
       "complexity": "simple"
     },
@@ -2285,11 +2266,11 @@
         739,
         790
       ],
-      "summary": "DMA2 Stream0 半满/满中断入口，按双缓冲落点分块发出新采样并累加统计，同时分门别类统计传输/直接/FIFO 三类 DMA 错误。",
+      "summary": "DMA2 Stream0 中断：处理半满/传输完成标志并按环形缓冲顺序上送采样（两标志同时挂起时用发送游标判定先后），同时统计并清除 TE/DME/FE 错误。",
       "tags": [
-        "中断处理",
+        "中断服务",
         "dma",
-        "双缓冲"
+        "数据上送"
       ],
       "complexity": "moderate"
     },
@@ -2302,10 +2283,11 @@
         797,
         800
       ],
-      "summary": "遗留的 TIM2 更新中断入口，单边沿采样模式下并不使能，仅清除中断标志。",
+      "summary": "兼容保留的 TIM2 更新中断入口，仅清除更新标志；单边沿采样方案下该中断实际未启用。",
       "tags": [
-        "中断处理",
-        "遗留"
+        "中断服务",
+        "tim2",
+        "兼容入口"
       ],
       "complexity": "simple"
     },
@@ -2318,10 +2300,11 @@
         805,
         807
       ],
-      "summary": "保留的兼容中断入口，旧版曾用 TIM3 统计转速，新版改由 Z 相 + TIM5 测速后已不再使用。",
+      "summary": "为启动向量兼容而保留的空 TIM3 中断入口；新版本已改用 Z 相周期测速。",
       "tags": [
-        "遗留",
-        "中断处理"
+        "中断服务",
+        "遗留入口",
+        "兼容"
       ],
       "complexity": "simple"
     },
@@ -2334,14 +2317,13 @@
         816,
         855
       ],
-      "summary": "PB12/EXTI12 下降沿中断：首个边沿只建立基准，其后每次有效边沿用 TIM5 时间戳求周期换算 RPM，并按配置的上报间隔置位更新标志。",
+      "summary": "PB12 下降沿（低有效 Z 脉冲）中断：首个边沿只建立 TIM5 基准，之后按有效周期换算 RPM，并在达到上报周期时置位 speed_updated 供前台读取。",
       "tags": [
-        "中断处理",
-        "测速",
+        "中断服务",
+        "z相测速",
         "exti"
       ],
-      "complexity": "moderate",
-      "languageNotes": "加入最小周期门限 VENDOR_Z_MIN_PERIOD_TICKS 过滤抖动引起的假脉冲，最高支持 12000 RPM。"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_usb_cdc.c:vendor_usb_cdc_get_tx_free",
@@ -2352,11 +2334,11 @@
         31,
         41
       ],
-      "summary": "查询 USB CDC 发送环形缓冲区的剩余空闲字节数，供上层做发送流控判断。",
+      "summary": "根据 CDC 发送环形缓冲的读写指针计算可写字节数，保留 1 字节用于区分空与满状态。",
       "tags": [
-        "工具函数",
         "环形缓冲",
-        "api"
+        "空间查询",
+        "usb-cdc"
       ],
       "complexity": "simple"
     },
@@ -2369,10 +2351,11 @@
         50,
         63
       ],
-      "summary": "调用 USBD_Init 初始化 USB 设备协议栈，并统一返回本模块的状态码。",
+      "summary": "调用 USBD_Init 初始化 ST USB Device 协议栈，依据 USE_USB_OTG_HS 选择 HS 或 FS 内核，并注册描述符、CDC 回调与用户回调。",
       "tags": [
-        "初始化",
-        "usb"
+        "usb初始化",
+        "usb-cdc",
+        "协议栈"
       ],
       "complexity": "simple"
     },
@@ -2385,13 +2368,13 @@
         72,
         110
       ],
-      "summary": "先查询发送缓冲剩余空间，不足则返回 BUSY，否则把数据按环形缓冲语义拷贝入队并推动发送。",
+      "summary": "校验数据指针与剩余空间，把数据分两段 memcpy 写入发送环形缓冲并在回卷时修正写指针，最后一次性发布 APP_Rx_ptr_in，空间不足返回 BUSY。",
       "tags": [
-        "发送",
+        "数据写入",
         "环形缓冲",
-        "api"
+        "usb-cdc"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "function:VENDOR/vendor_usb_cdc.c:vendor_usb_cdc_set_rx_handler",
@@ -2402,10 +2385,11 @@
         118,
         122
       ],
-      "summary": "注册 USB OUT 数据到达时的接收回调函数与用户上下文。",
+      "summary": "保存 USB OUT 数据回调函数及其上下文，供 CDC 类驱动收到主机数据时调用。",
       "tags": [
         "回调注册",
-        "api"
+        "usb-cdc",
+        "接口"
       ],
       "complexity": "simple"
     },
@@ -2418,10 +2402,536 @@
         130,
         135
       ],
-      "summary": "USB 类驱动收到 OUT 数据包后的转发入口，把数据交给已注册的接收回调处理。",
+      "summary": "CDC 类驱动收到 OUT 数据包的转入入口，若已注册回调则将数据与上下文原样转发。",
       "tags": [
-        "接收",
+        "接收分发",
+        "usb-cdc",
         "回调"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:IMPLEMENT/impl_usb_cdc_stream.c:impl_usb_cdc_stream_vendor_rx",
+      "type": "function",
+      "name": "impl_usb_cdc_stream_vendor_rx",
+      "filePath": "IMPLEMENT/impl_usb_cdc_stream.c",
+      "lineRange": [
+        91,
+        98
+      ],
+      "summary": "vendor USB 接收回调的桥接函数，把收到的数据连同上下文转交给 service 层注册的 RX 回调。",
+      "tags": [
+        "callback-bridge",
+        "rx-转发",
+        "usb-cdc"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:IMPLEMENT/impl_usb_cdc_stream.c:impl_usb_cdc_stream_send",
+      "type": "function",
+      "name": "impl_usb_cdc_stream_send",
+      "filePath": "IMPLEMENT/impl_usb_cdc_stream.c",
+      "lineRange": [
+        126,
+        132
+      ],
+      "summary": "把待发送缓冲区交给 vendor USB CDC 写入接口，并把返回状态映射为 platform 状态码。",
+      "tags": [
+        "数据发送",
+        "vendor-转发",
+        "usb-cdc"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:HOST/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "HOST/README.md",
+      "summary": "上位机使用说明文档，介绍 Python 串口桥接方案、快速启动流程、连接诊断、ADC 与转速帧解析规则、时间频率换算以及与 STM32F407 固件的对应关系。",
+      "tags": [
+        "文档",
+        "上位机",
+        "使用说明",
+        "协议解析",
+        "故障排查"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "含 11 个章节、多张排错与协议对照表格，明确说明浏览器 Web Serial 的限制以及改用本地 HTTP 桥接的原因。"
+    },
+    {
+      "id": "file:HOST/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "HOST/index.html",
+      "summary": "单文件上位机仪表盘，通过本地 bridge.py 的 /api 接口读取 USB CDC 字节流，实现实时波形、转速仪表与趋势、统计测量、8192 点 FFT 频谱以及 USART1 调试遥测解析。",
+      "tags": [
+        "上位机",
+        "单页应用",
+        "波形可视化",
+        "fft",
+        "web-api"
+      ],
+      "complexity": "complex",
+      "languageNotes": "全部 HTML/CSS/JavaScript 内联在单个文件中；使用 4 Mi 样本环形缓冲区、增量渲染与 requestAnimationFrame 调度来维持高频采样下的流畅显示。"
+    },
+    {
+      "id": "file:HOST/start.bat",
+      "type": "file",
+      "name": "start.bat",
+      "filePath": "HOST/start.bat",
+      "summary": "Windows 启动脚本，先检查 8765 端口是否已有桥接进程，再定位 python/py 启动 bridge.py，最后优先用 Edge 或 Chrome 打开上位机页面。",
+      "tags": [
+        "启动脚本",
+        "windows",
+        "batch",
+        "本地桥接"
+      ],
+      "complexity": "simple",
+      "languageNotes": "以 :LABEL + goto 组织流程（try_py、no_python、wait_bridge、open_page、edge_x86、edge_x64、chrome、done），用 netstat+findstr 判断端口监听状态。"
+    },
+    {
+      "id": "class:HOST/index.html:FrameParser",
+      "type": "class",
+      "name": "FrameParser",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        566,
+        629
+      ],
+      "summary": "字节流状态机解析器，从连续的 8 bit ADC 字节中识别 9 字节转速帧，经帧头、累加和与 RPM 上限校验后剥离，并把跨 chunk 的半帧缓存到下一次拼接。",
+      "tags": [
+        "协议解析",
+        "状态机",
+        "串口数据",
+        "帧校验"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:api",
+      "type": "function",
+      "name": "api",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        841,
+        856
+      ],
+      "summary": "封装对本地桥接的 fetch 调用，支持 GET/POST JSON 请求，并把 HTTP 错误或响应中的 ok:false 统一转换为异常。",
+      "tags": [
+        "桥接客户端",
+        "http-api",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:detectBridge",
+      "type": "function",
+      "name": "detectBridge",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        958,
+        986
+      ],
+      "summary": "请求 /api/ports 探测本地桥接是否运行，保存 pyserial 状态与串口列表；失败时显示桥接未运行横幅并禁用相关控件。",
+      "tags": [
+        "桥接检测",
+        "串口枚举",
+        "初始化"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:connectData",
+      "type": "function",
+      "name": "connectData",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        988,
+        1011
+      ],
+      "summary": "通过 /api/open 打开选中的 ADC 数据串口，重置数据后启动数据流读取，失败时在连接诊断区提示端口占用或打开错误。",
+      "tags": [
+        "串口连接",
+        "数据口",
+        "api-handler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:startBridgeStream",
+      "type": "function",
+      "name": "startBridgeStream",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1038,
+        1059
+      ],
+      "summary": "以 AbortController 打开 /api/stream 数据流，按 data/debug 类型建立 ReadableStream reader，并转交 readBridgeStream 持续消费。",
+      "tags": [
+        "数据流",
+        "fetch-stream",
+        "事件处理"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:readBridgeStream",
+      "type": "function",
+      "name": "readBridgeStream",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1061,
+        1079
+      ],
+      "summary": "循环读取桥接返回的二进制分片：数据口交给 handleWireData 解析，调试口用 TextDecoder 流式解码为文本，并在异常或流结束时处理断连。",
+      "tags": [
+        "流读取",
+        "reader",
+        "事件处理"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:computeMeasurements",
+      "type": "function",
+      "name": "computeMeasurements",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1251,
+        1302
+      ],
+      "summary": "对可见窗口内的 ADC 样本做一次遍历，计算最小/最大值、峰峰值、均值、真 RMS、AC RMS、过零频率及 0/255 削顶计数。",
+      "tags": [
+        "测量",
+        "统计",
+        "信号分析"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:drawWave",
+      "type": "function",
+      "name": "drawWave",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1367,
+        1587
+      ],
+      "summary": "绘制实时波形：按时间窗计算样本范围，样本多于像素时用每列 min/max 包络带呈现，支持自动量程、网格刻度、游标读数与暂停状态下的拖动缩放。",
+      "tags": [
+        "波形绘制",
+        "canvas",
+        "可视化",
+        "示波器"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:HOST/index.html:drawGauge",
+      "type": "function",
+      "name": "drawGauge",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1613,
+        1687
+      ],
+      "summary": "在 canvas 上绘制 0–12000 rpm 的指针式转速仪表，并在转速帧过期或缺失时显示灰色待机状态。",
+      "tags": [
+        "转速仪表",
+        "canvas",
+        "可视化"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:drawTrend",
+      "type": "function",
+      "name": "drawTrend",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1689,
+        1772
+      ],
+      "summary": "绘制最近 120 秒的转速趋势曲线与均值/峰值标注，并随新转速帧动态调整时间轴与 Y 轴范围。",
+      "tags": [
+        "趋势图",
+        "canvas",
+        "可视化"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:fftRadix2",
+      "type": "function",
+      "name": "fftRadix2",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1774,
+        1806
+      ],
+      "summary": "原地实现基-2 迭代 FFT：先做位反转重排，再按蝶形逐级计算，供 8192 点频谱分析使用。",
+      "tags": [
+        "fft",
+        "算法",
+        "信号处理"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "使用预计算的旋转因子逐步复乘，避免每个蝶形都调用三角函数。"
+    },
+    {
+      "id": "function:HOST/index.html:computeFft",
+      "type": "function",
+      "name": "computeFft",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1808,
+        1917
+      ],
+      "summary": "取最近 8192 个 ADC 样本去均值并加 Hann 窗后执行 FFT，换算 LSB 幅值与 dBFS，用抛物线插值提取主要频率峰，并对采样率偏差与转速波动给出提示。",
+      "tags": [
+        "频谱分析",
+        "fft",
+        "hann-window",
+        "峰值检测"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:HOST/index.html:drawFft",
+      "type": "function",
+      "name": "drawFft",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        1945,
+        2046
+      ],
+      "summary": "把 FFT 结果绘制为 dBFS 频谱曲线，包含频率/幅度刻度、峰值标记与无数据时的原因提示。",
+      "tags": [
+        "频谱绘制",
+        "canvas",
+        "可视化"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:computeWarnings",
+      "type": "function",
+      "name": "computeWarnings",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        2178,
+        2197
+      ],
+      "summary": "根据调试遥测指标判断队列水位、丢样、USB 忙、ADC 溢出与 DMA 错误等异常，生成带严重级别的告警列表。",
+      "tags": [
+        "告警",
+        "诊断",
+        "校验"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:handleDebugLine",
+      "type": "function",
+      "name": "handleDebugLine",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        2307,
+        2321
+      ],
+      "summary": "缓存并计数 USART1 日志行，识别以 D 开头的遥测行，用正则提取 key=value 形式的运行指标写入调试状态。",
+      "tags": [
+        "遥测解析",
+        "日志",
+        "正则"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/index.html:bindEvents",
+      "type": "function",
+      "name": "bindEvents",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        2326,
+        2422
+      ],
+      "summary": "绑定全部界面交互：端口刷新/连接/启停/暂停按钮、时间窗与自动量程选项，以及波形画布的悬停、拖动、双击与滚轮缩放。",
+      "tags": [
+        "事件绑定",
+        "交互",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:loop",
+      "type": "function",
+      "name": "loop",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        2428,
+        2493
+      ],
+      "summary": "requestAnimationFrame 主循环：推断采集状态、更新速率与视图位置，并按脏标记与节流间隔调度波形、仪表、趋势、测量和 FFT 的绘制。",
+      "tags": [
+        "主循环",
+        "渲染调度",
+        "requestanimationframe"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:HOST/index.html:init",
+      "type": "function",
+      "name": "init",
+      "filePath": "HOST/index.html",
+      "lineRange": [
+        2498,
+        2507
+      ],
+      "summary": "页面入口：构建调试指标网格、绑定事件、刷新各区域 UI，启动主循环并静默探测本地桥接。",
+      "tags": [
+        "入口点",
+        "初始化",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:USER/.eide/eide.yml",
+      "type": "config",
+      "name": "eide.yml",
+      "filePath": "USER/.eide/eide.yml",
+      "summary": "VSCode EIDE 工程的构建配置，定义 USMART 目标的源文件虚拟目录、AC6 工具链与 Cortex-M4 编译参数、STM32F407 存储布局以及 J-Link 下载设置。",
+      "tags": [
+        "构建配置",
+        "eide",
+        "ac6",
+        "stm32f407",
+        "jlink"
+      ],
+      "complexity": "complex",
+      "languageNotes": "AC6 配置使用 GNU 风格编译选项（如 level-1 优化、--diag_suppress=L6329），存储布局区分 IRAM（0x20000000）与 IROM（0x08000000）。"
+    },
+    {
+      "id": "file:HOST/bridge.py",
+      "type": "file",
+      "name": "bridge.py",
+      "filePath": "HOST/bridge.py",
+      "summary": "本地上位机串口桥接服务：用 pyserial 管理 data/debug 两个 COM 槽位，并通过 HTTP API 提供端口枚举、打开/关闭、写命令、状态查询与 chunked 原始字节流，同时托管 index.html。",
+      "tags": [
+        "host-tool",
+        "serial-bridge",
+        "http-server",
+        "pyserial"
+      ],
+      "complexity": "complex",
+      "languageNotes": "基于标准库 http.server 的单文件桥接服务，用 chunked HTTP 把串口字节流式转发给浏览器；FakeSerial 便于无硬件自测。"
+    },
+    {
+      "id": "class:HOST/bridge.py:FakeSerial",
+      "type": "class",
+      "name": "FakeSerial",
+      "filePath": "HOST/bridge.py",
+      "lineRange": [
+        49,
+        130
+      ],
+      "summary": "内置模拟串口（MCU_HOST_FAKE=1 时启用）：ADC 模式生成双正弦采样并在每 50000 字节后插入 A5 5A 52 04 转速帧，debug 模式输出 D 遥测行，用于无硬件自动化验证。",
+      "tags": [
+        "test-double",
+        "simulated-serial",
+        "pyserial",
+        "mock"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "通过 write() 识别 O\\0/C\\0 切换 streaming 状态，read() 依据时间片生成数据，行为足以支撑 HTTP 层端到端测试。"
+    },
+    {
+      "id": "class:HOST/bridge.py:SerialSlot",
+      "type": "class",
+      "name": "SerialSlot",
+      "filePath": "HOST/bridge.py",
+      "lineRange": [
+        136,
+        226
+      ],
+      "summary": "串口槽位封装：以互斥锁保护 pyserial 句柄，维护连接代数 generation、接收字节计数与最近错误，提供 open/close/write/read/status 供 HTTP 层调用。",
+      "tags": [
+        "serial-port",
+        "thread-safety",
+        "pyserial",
+        "wrapper"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:HOST/bridge.py:Handler",
+      "type": "class",
+      "name": "Handler",
+      "filePath": "HOST/bridge.py",
+      "lineRange": [
+        269,
+        469
+      ],
+      "summary": "HTTP 请求处理器：校验 Origin/CORS，路由 /api/ports、/api/open、/api/close、/api/write、/api/status 与 /api/stream，并托管 index.html；/api/stream 以 chunked 编码持续转发串口原始字节。",
+      "tags": [
+        "http-handler",
+        "rest-api",
+        "cors",
+        "streaming"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:HOST/bridge.py:list_serial_ports",
+      "type": "function",
+      "name": "list_serial_ports",
+      "filePath": "HOST/bridge.py",
+      "lineRange": [
+        232,
+        263
+      ],
+      "summary": "枚举系统串口并标记推荐端口：hwid 含 0483:5740 或描述含 STM32/VIRTUAL COMPORT 时 recommended=True；FAKE 模式返回 COM_TEST/COM_DEBUG 两个模拟端口。",
+      "tags": [
+        "utility",
+        "serial-port",
+        "enumeration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:HOST/bridge.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "HOST/bridge.py",
+      "lineRange": [
+        472,
+        496
+      ],
+      "summary": "启动 ThreadingHTTPServer 监听 127.0.0.1:8765，打印模拟/依赖状态，收到 Ctrl-C 后关闭所有串口槽位并退出。",
+      "tags": [
+        "entry-point",
+        "http-server",
+        "bootstrap"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:USER/USMART.code-workspace",
+      "type": "config",
+      "name": "USMART.code-workspace",
+      "filePath": "USER/USMART.code-workspace",
+      "summary": "极简的 VSCode 工作区文件，仅通过 folders 将当前目录（USER/）注册为工作区根，settings 与 extensions 均为空。",
+      "tags": [
+        "configuration",
+        "vscode-workspace",
+        "ide",
+        "tooling"
       ],
       "complexity": "simple"
     }
@@ -2904,48 +3414,6 @@
       "weight": 0.8
     },
     {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "file:USER/main.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "file:APP/app_main.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "file:SERVICE/adc_stream_service.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "file:IMPLEMENT/impl_stm32_encoder_adc.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "file:IMPLEMENT/impl_usb_cdc_stream.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/eide.yml",
-      "target": "config:USER/USMART.uvprojx",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
       "source": "config:USER/.eide/env.ini",
       "target": "file:USER/main.c",
       "type": "configures",
@@ -2958,13 +3426,6 @@
       "type": "configures",
       "direction": "forward",
       "weight": 0.6
-    },
-    {
-      "source": "config:USER/.eide/files.options.yml",
-      "target": "config:USER/.eide/eide.yml",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
     },
     {
       "source": "file:APP/app_main.c",
@@ -3751,13 +4212,6 @@
       "weight": 0.6
     },
     {
-      "source": "config:USER/USMART.code-workspace",
-      "target": "file:USER/main.c",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
       "source": "file:SYSTEM/usart/usart.c",
       "target": "file:APP/app_main.c",
       "type": "related",
@@ -4134,23 +4588,575 @@
       "type": "exports",
       "direction": "forward",
       "weight": 0.8
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_board.c",
+      "target": "file:PLATFORM/platform_board.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_encoder_adc.c",
+      "target": "file:PLATFORM/platform_adc_stream.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_encoder_adc.c",
+      "target": "file:VENDOR/vendor_stm32_encoder_adc.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_device.c",
+      "target": "file:PLATFORM/platform_usb_device.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_device.c",
+      "target": "file:VENDOR/vendor_usb_cdc.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
+      "target": "file:PLATFORM/platform_byte_stream.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
+      "target": "file:VENDOR/vendor_usb_cdc.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
+      "target": "function:IMPLEMENT/impl_usb_cdc_stream.c:impl_usb_cdc_stream_vendor_rx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
+      "target": "function:IMPLEMENT/impl_usb_cdc_stream.c:impl_usb_cdc_stream_send",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "class:HOST/index.html:FrameParser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:api",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:detectBridge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:connectData",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:startBridgeStream",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:readBridgeStream",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:computeMeasurements",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:drawWave",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:drawGauge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:drawTrend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:fftRadix2",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:computeFft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:drawFft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:computeWarnings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:handleDebugLine",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:bindEvents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:loop",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "function:HOST/index.html:init",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "file:HOST/bridge.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:HOST/start.bat",
+      "target": "file:HOST/bridge.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:HOST/start.bat",
+      "target": "file:HOST/index.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:HOST/index.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:HOST/bridge.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:HOST/start.bat",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:SERVICE/adc_stream_service.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:HOST/README.md",
+      "target": "file:APP/app_main.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "file:SERVICE/adc_stream_service.c",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:HOST/index.html",
+      "target": "file:APP/app_main.c",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:USER/.eide/eide.yml",
+      "target": "file:USER/main.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/.eide/eide.yml",
+      "target": "file:APP/app_main.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/.eide/files.options.yml",
+      "target": "config:USER/.eide/eide.yml",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/.eide/env.ini",
+      "target": "config:USER/.eide/eide.yml",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "function:HOST/bridge.py:list_serial_ports",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "function:HOST/bridge.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:FakeSerial",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:SerialSlot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:Handler",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "function:HOST/bridge.py:list_serial_ports",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "function:HOST/bridge.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:FakeSerial",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:SerialSlot",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:HOST/bridge.py",
+      "target": "class:HOST/bridge.py:Handler",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:PLATFORM/platform_board.h",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:HOST/bridge.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:APP/app_main.c:app_main",
+      "target": "function:APP/app_main.c:app_debug_uart_init",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:APP/app_main.c:app_main",
+      "target": "function:APP/app_main.c:app_debug_uart_poll",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:APP/app_main.c:app_debug_uart_poll",
+      "target": "function:APP/app_main.c:app_debug_uart_event",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:APP/app_main.c:app_debug_uart_report",
+      "target": "function:APP/app_main.c:app_debug_line_u32",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:SYSTEM/delay/delay.c:delay_ms",
+      "target": "function:SYSTEM/delay/delay.c:delay_xms",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:USER/main.c",
+      "target": "file:APP/app_main.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:SYSTEM/usart/usart.h",
+      "target": "file:SYSTEM/usart/usart.c",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:USER/USMART.code-workspace",
+      "target": "file:USER/main.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.code-workspace",
+      "target": "file:USER/stm32f4xx_it.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:USER/stm32f4xx_it.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:APP/app_main.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:APP/app_main.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:SERVICE/adc_stream_service.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:PLATFORM/platform_status.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:PLATFORM/platform_adc_stream.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:PLATFORM/platform_byte_stream.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:PLATFORM/platform_usb_device.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:PLATFORM/platform_board.h",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:SYSTEM/delay/delay.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:USER/USMART.uvprojx",
+      "target": "file:SYSTEM/sys/sys.c",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "target": "file:USER/stm32f4xx.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "target": "file:SYSTEM/sys/sys.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:USMART/usmart_str.h",
+      "target": "file:USER/stm32f4xx.h",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:USMART/readme.txt",
+      "target": "file:USMART/usmart_str.h",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
     }
   ],
   "layers": [
     {
       "id": "layer:app",
-      "name": "应用层",
-      "description": "固件最外层启动与编排：main.c 只调用 app_main()，由 app_main.c 初始化 ADC 数据流服务并在 while(1) 主循环中轮询服务与 USART1 调试遥测。",
+      "name": "应用编排层",
+      "description": "固件业务编排入口，负责初始化 ADC 数据流服务与 USART1 调试遥测，并在主循环中驱动采样、上报与休眠判断。",
       "nodeIds": [
         "file:APP/app_main.c",
-        "file:APP/app_main.h",
-        "file:USER/main.c"
+        "file:APP/app_main.h"
       ]
     },
     {
       "id": "layer:service",
       "name": "服务层",
-      "description": "核心业务状态机：用 RX(64B)/ADC(16KB) 两级环形队列解耦中断与主循环，解析上位机 O\\0/C\\0 命令、按 512B 分块上行 ADC 原始字节、按 500ms 周期发送转速帧，并在队列水位过高或 USB 忙时做背压暂停。",
+      "description": "ADC 数据流状态机与核心业务逻辑，管理 RX/ADC 两级环形队列，解析 O\\0、C\\0 命令，按 512 B 分块上行并以 500 ms 周期发送转速帧。",
       "nodeIds": [
         "file:SERVICE/adc_stream_service.c",
         "file:SERVICE/adc_stream_service.h"
@@ -4159,7 +5165,7 @@
     {
       "id": "layer:platform",
       "name": "平台抽象层",
-      "description": "纯接口头文件构成的平台契约层：以 ops 函数表定义 ADC 采样流、字节流、USB 设备三个抽象，并给出板级装配对象 platform_board_t 与统一状态码 platform_status_t，是 SERVICE 与 IMPLEMENT 共同依赖的枢纽。",
+      "description": "以 ops 函数表、统一状态码和板级对象集合定义 ADC 采样流、字节流与 USB 设备抽象，是 service 与具体实现之间的多态解耦边界。",
       "nodeIds": [
         "file:PLATFORM/platform_adc_stream.h",
         "file:PLATFORM/platform_board.h",
@@ -4171,7 +5177,7 @@
     {
       "id": "layer:implement",
       "name": "平台实现层",
-      "description": "平台抽象的具体落地：以 base 前置结构实现 C 语言多态，把 PLATFORM 的操作表分发到 VENDOR 驱动，并把底层采样回调与中断桥接回 SERVICE。",
+      "description": "面向 STM32 的平台适配实现，把 PLATFORM 抽象接口转发给 VENDOR 驱动，并将采样流、字节流和设备对象聚合为 platform_board_t 供服务层取用。",
       "nodeIds": [
         "file:IMPLEMENT/impl_stm32_board.c",
         "file:IMPLEMENT/impl_stm32_encoder_adc.c",
@@ -4184,8 +5190,8 @@
     },
     {
       "id": "layer:vendor",
-      "name": "驱动层",
-      "description": "真正操作 STM32 外设的驱动层：TIM2 单边沿捕获触发 ADC1 采样、DMA2 Stream0 双缓冲搬运并分块回调、TIM5 时间戳配合 Z 相脉冲测速，以及带环形缓冲的 USB CDC 虚拟串口收发。",
+      "name": "厂商驱动层",
+      "description": "STM32F407 具体外设驱动，实现编码器上升沿触发 ADC、DMA 循环缓冲采样与转速测量，以及 USB CDC 协议栈的环形缓冲收发。",
       "nodeIds": [
         "file:VENDOR/vendor_stm32_encoder_adc.c",
         "file:VENDOR/vendor_stm32_encoder_adc.h",
@@ -4194,29 +5200,44 @@
       ]
     },
     {
-      "id": "layer:bsp",
-      "name": "板级支撑层",
-      "description": "硬件平台基础：ST/CMSIS 外设寄存器定义与标准外设库配置、系统时钟与中断向量启动代码，以及 SYSTEM 下的 SysTick 延时与 WFI/开关总中断等底层系统控制。",
+      "id": "layer:board-support",
+      "name": "板级支持与启动层",
+      "description": "SYSTEM 与 USER 目录中的启动入口、时钟配置、异常与中断向量、CMSIS 寄存器定义、SysTick 延时及遗留 USART 占位代码，构成固件运行的基础支撑。",
       "nodeIds": [
+        "file:SYSTEM/delay/delay.c",
+        "file:SYSTEM/delay/delay.h",
+        "file:SYSTEM/sys/sys.c",
+        "file:SYSTEM/sys/sys.h",
+        "file:SYSTEM/usart/usart.c",
+        "file:SYSTEM/usart/usart.h",
+        "file:USER/main.c",
         "file:USER/stm32f4xx.h",
         "file:USER/stm32f4xx_conf.h",
         "file:USER/stm32f4xx_it.c",
         "file:USER/stm32f4xx_it.h",
         "file:USER/system_stm32f4xx.c",
-        "file:USER/system_stm32f4xx.h",
-        "file:SYSTEM/delay/delay.c",
-        "file:SYSTEM/delay/delay.h",
-        "file:SYSTEM/sys/sys.c",
-        "file:SYSTEM/sys/sys.h"
+        "file:USER/system_stm32f4xx.h"
       ]
     },
     {
-      "id": "layer:legacy",
-      "name": "遗留休眠代码",
-      "description": "不参与当前构建的历史遗留产物：被整体注释的 USART1 命令行调试实现，以及实现已从工程移除的 USMART 串口调试组件（占位与控制块配置），仅作参考保留。",
+      "id": "layer:toolchain",
+      "name": "构建配置与工具链",
+      "description": "Keil MDK 与 VSCode EIDE 工程定义、AC6 编译与 J-Link 下载设置、代码风格配置，以及 Keil 中间文件清理脚本，覆盖构建和开发环境。",
       "nodeIds": [
-        "file:SYSTEM/usart/usart.c",
-        "file:SYSTEM/usart/usart.h",
+        "config:USER/.eide/env.ini",
+        "config:USER/.eide/files.options.yml",
+        "config:USER/.eide/eide.yml",
+        "config:USER/.clang-format",
+        "config:USER/USMART.uvprojx",
+        "config:USER/USMART.code-workspace",
+        "file:keilkilll.bat"
+      ]
+    },
+    {
+      "id": "layer:legacy-debug",
+      "name": "遗留调试组件",
+      "description": "ALIENTEK USMART 串口命令行调试组件的遗留源码，主体已被注释或为空文件，当前未纳入固件编译。",
+      "nodeIds": [
         "file:USMART/usmart.c",
         "file:USMART/usmart.h",
         "file:USMART/usmart_config.c",
@@ -4225,186 +5246,174 @@
       ]
     },
     {
-      "id": "layer:config",
-      "name": "构建与配置",
-      "description": "工程构建、工具链与编辑器设置：Keil MDK/EIDE 工程定义与编译器选项、clang-format 代码风格、VS Code 工作区挂载，以及清理 Keil 构建中间产物的 keilkilll.bat。",
+      "id": "layer:host-tool",
+      "name": "上位机工具",
+      "description": "配套上位机：Python pyserial 串口桥接服务提供 HTTP API 与原始字节流，单文件 HTML 仪表盘实现波形、转速与 FFT 展示，配合 Windows 启动脚本一键运行。",
       "nodeIds": [
-        "config:USER/.eide/eide.yml",
-        "config:USER/.eide/env.ini",
-        "config:USER/.eide/files.options.yml",
-        "config:USER/.clang-format",
-        "config:USER/USMART.code-workspace",
-        "config:USER/USMART.uvprojx",
-        "file:keilkilll.bat"
+        "file:HOST/bridge.py",
+        "file:HOST/index.html",
+        "file:HOST/start.bat"
       ]
     },
     {
       "id": "layer:documentation",
       "name": "项目文档",
-      "description": "项目文档：README.md 总览硬件引脚分配、五层架构与依赖方向、数据通路及 USB 通信协议，USMART readme.txt 记录该串口调试组件的版本变更历史。",
+      "description": "记录硬件引脚、五层软件架构、数据通路、USB 通信协议、构建烧录流程、上位机用法及 USMART 版本历史的说明文档。",
       "nodeIds": [
         "document:README.md",
-        "document:USMART/readme.txt"
+        "document:USMART/readme.txt",
+        "document:HOST/README.md"
       ]
     }
   ],
   "tour": [
     {
       "order": 1,
-      "title": "项目总览与数据通路",
-      "description": "从 README 开始：这是一份 STM32F407 裸机固件，用编码器脉冲作为硬件触发源驱动 ADC 采样，数据经 DMA 双缓冲与两级环形队列缓冲后由 USB CDC 虚拟串口上传，并用每转一次的 Z 相脉冲测速。README 用 17 个小节交代了引脚分配、五层架构与依赖方向、数据通路和 USB 通信协议（O\\0/C\\0 命令、9 字节转速帧），先把这张地图装进脑子，后面的每一层都能在图上找到位置。",
+      "title": "项目全景与阅读地图",
+      "description": "从 README 开始建立全局认知：这块 STM32F407 固件用编码器上升沿硬件触发 ADC 采样，经 DMA 双缓冲和两级环形队列后由 USB CDC 上传，同时用 Z 相脉冲测速并按 500 ms 上报转速帧。文档还给出了 PA2/PA5/PB12/PA11/PA12 的引脚分配、APP → SERVICE → PLATFORM ← IMPLEMENT → VENDOR 的五层架构与完整的 USB 通信协议。先记住这张地图，后续每一步都会回到其中的某一块。",
       "nodeIds": [
         "document:README.md"
       ],
-      "languageLesson": "裸机固件的阅读顺序和上层应用相反：没有框架帮你隐藏硬件，入口 main 之下通常直接是寄存器操作。先看 README 确定数据流方向（谁触发谁、谁搬运谁），再去读代码，能省掉大量在中断与外设寄存器之间的来回猜测。"
+      "languageLesson": "阅读嵌入式项目文档时，优先抓三样东西：引脚与时序约束、中断/数据通路、以及上位机与固件之间的字节级协议。它们决定了代码为什么这样分层。"
     },
     {
       "order": 2,
-      "title": "固件入口：main 只做转发",
-      "description": "main.c 是固件最外层 C 入口，整个 main() 只有两行：调用 app_main() 然后 return 0，业务编排一点也没留在这一层。它依赖 APP 层的 app_main.h，而 app_main.h 对外只暴露一个 app_main() 原型，让 USER 层完全不必触碰 SERVICE 层的任何细节。这种「入口极薄、头文件只开一个口」的做法，是后面整套分层能立得住的第一块基石。",
+      "title": "启动入口与硬件底座",
+      "description": "USER/main.c 是复位后最外层的 C 入口，它刻意只调用 app_main() 就返回，让启动层保持极薄。system_stm32f4xx.c 在进入 main 之前由启动汇编调用 SystemInit，配置 PLL、Flash 等待周期与总线分频；stm32f4xx_it.c 则持有异常向量和 OTG_FS 中断入口，把 USB 事件转交给协议栈。这一层解释了固件“从复位到主循环”之前发生了什么。",
       "nodeIds": [
         "file:USER/main.c",
-        "file:APP/app_main.h"
+        "file:USER/system_stm32f4xx.c",
+        "file:USER/stm32f4xx_it.c"
       ],
-      "languageLesson": "C 语言里没有 package/private 关键字，模块的「公开接口」完全靠头文件内容来表达：头文件里少写一行声明，就等于把那个符号锁在实现文件内部。app_main.h 只声明一个函数，就是在用头文件给 USER 层划边界。"
+      "languageLesson": "Cortex-M 启动流程：复位向量 → 启动汇编拷贝 .data、清零 .bss → 调用 SystemInit 配时钟 → 跳转 main。向量表把硬件异常（HardFault、SysTick、外设 IRQ）映射到固定地址的 C 函数，因此中断函数名必须与启动文件一致。"
     },
     {
       "order": 3,
-      "title": "应用层主循环与调试遥测",
-      "description": "app_main.c 接过编排职责：先初始化 ADC 数据流服务，再拉起 USART1 调试遥测，然后进入 while(1) 主循环轮询 service 与遥测上报。主循环末尾那条 WFI 休眠路径当前已被注释掉，原因是服务层在等待数据时未必满足休眠条件——这个细节恰好说明了「主循环的节拍由服务层状态决定」。服务层之外，它还提供了 app_debug_uart_poll 之类的辅助函数，向 USART1 每秒输出一行运行指标。",
+      "title": "应用主循环与调试遥测",
+      "description": "APP/app_main.c 是业务编排的起点：先初始化 ADC 数据流服务与 USART1 调试口，然后在主循环中反复调用 service 的 poll 和遥测上报。它不碰任何寄存器，只在“服务对象”和“调试输出”之间做调度，因此是理解前后台系统节奏的最佳位置（WFI 低功耗分支当前被注释）。app_main.h 只暴露一个函数，保证 USER 层不需要了解 SERVICE 的内部细节。",
       "nodeIds": [
-        "file:APP/app_main.c"
-      ]
+        "file:APP/app_main.c",
+        "file:APP/app_main.h"
+      ],
+      "languageLesson": "裸机前后台系统（foreground/background）：中断负责高实时性的短任务（入队、置标志），主循环负责耗时任务（批量搬运、协议解析、打印）。关键设计是中断里绝不做耗时操作，只把数据交给队列。"
     },
     {
       "order": 4,
-      "title": "服务层状态机与两级环形队列",
-      "description": "这是全工程业务逻辑的心脏：adc_stream_service.c 用 RX(64B) 与 ADC(16KB) 两级环形队列把中断上下文和主循环解耦，中断只负责往队列里塞字节，主循环才做搬运与协议处理。它解析上位机 O\\0 / C\\0 命令，按 512B 分块把 ADC 原始字节经 USB CDC 上行，并按 500ms 周期发送 A5 5A 52 04 转速帧；当队列水位过高或 USB 端点忙时会暂停采样做背压保护，恢复后再 resume。配套的 adc_stream_service.h 定义了服务状态枚举、统计结构体（已发送/丢弃字节、命令数、USB 忙返回与忙事件、暂停恢复次数、队列峰值）以及 init/poll/start/stop/get_state/get_stats/get_queue_used/can_sleep 公开 API。注意它只依赖 PLATFORM 的头文件，不认识任何 STM32 寄存器——这正是第 5 步要展开的关键。",
+      "title": "数据流服务状态机与双缓冲",
+      "description": "SERVICE/adc_stream_service.c 是全项目的业务核心：它维护 RX（64 B）与 ADC（16 KB）两级环形队列，用状态机处理 O\\0 启动、C\\0 停止命令，每次 poll 最多取 512 B 交给上层发送，并每 500 ms 生成一帧 9 字节转速数据。当队列水位过高或 USB 返回忙时，它会调用抽象的 pause/resume 对采样做背压保护，同时累计丢样、忙返回、溢出等统计。头文件把这些能力收敛成 init/poll/start/stop/get_stats 等少量接口。",
       "nodeIds": [
         "file:SERVICE/adc_stream_service.c",
         "file:SERVICE/adc_stream_service.h"
       ],
-      "languageLesson": "环形队列（ring buffer）在裸机上是解耦生产/消费者的标准手法：写指针由中断推进、读指针由主循环推进，两者只在指针更新处需要短暂的临界区保护。两级队列的意义在于吸收突发——DMA 一次交付 512 字节很猛，但 USB 端点一次只能吞 64 字节。"
+      "languageLesson": "生产者-消费者环形队列：head/tail 各自单调递增并对容量取模，只有生产者写 head、消费者写 tail，配合“满/空”判断即可避免加锁。中断与主循环共享的索引和统计量必须用 volatile 修饰，跨多字节更新的地方还需短暂关中断保护。"
     },
     {
       "order": 5,
-      "title": "平台抽象层：纯接口的契约",
-      "description": "PLATFORM 目录里没有一行实现代码，全是头文件——这是整个工程最重要的设计决策。platform_adc_stream.h 用生命周期状态枚举、配置/转速结果结构体和 init/start/stop/pause/resume/set_sample_callback/get_speed_update/get_state 的 ops 函数表，把「一路编码器触发的采样流」抽象成一个对象；platform_byte_stream.h 用 init/send/set_rx_callback 抽象「一条字节链路」；platform_usb_device.h 目前只抽象 init 一个动作；platform_status.h 定义了所有 platform API 共用的统一状态码（OK/ERROR/BUSY/INVALID_PARAM/NOT_READY）。正因为 SERVICE 只认这几张函数表，第 7-11 步的 IMPLEMENT/VENDOR 才能被整体替换而不动服务层一行代码。",
+      "title": "平台抽象层的多态契约",
+      "description": "PLATFORM/platform_board.h 把一块板子绑定成 ADC 采样流、字节流、USB 设备三个抽象指针，service 只通过 platform_board_get() 取用它们。platform_status.h 则统一了所有平台 API 的返回值（OK/ERROR/BUSY/INVALID_PARAM/NOT_READY），让上层无需关心底层是 STM32 外设还是别的实现。这两份头文件共同划出了“业务逻辑不依赖硬件”的依赖倒置边界。",
       "nodeIds": [
-        "file:PLATFORM/platform_status.h",
+        "file:PLATFORM/platform_board.h",
+        "file:PLATFORM/platform_status.h"
+      ],
+      "languageLesson": "C 语言实现多态：把 ops 函数表（函数指针集合）和一个不透明的 impl 指针放进对象结构体，调用方只通过函数指针分发。手写面向对象时，基类结构体必须放在派生结构体的第一个成员位置，才能安全地做指针强转。"
+    },
+    {
+      "order": 6,
+      "title": "采样流与字节流接口",
+      "description": "这三个纯头文件定义了 service 能看到的全部能力：ADC 采样流有 init/start/stop/pause/resume、采样回调与转速结果，字节流有 init/send/set_rx_callback，USB 设备当前只抽象了 init。接收方向统一用回调注册（把底层收到的字节推给 service），发送方向统一用 send 返回值表达 BUSY，正是第 4 步背压逻辑的接口前提。注意 service 的源码只 include 这些头文件，不包含任何 IMPLEMENT/VENDOR 文件。",
+      "nodeIds": [
         "file:PLATFORM/platform_adc_stream.h",
         "file:PLATFORM/platform_byte_stream.h",
         "file:PLATFORM/platform_usb_device.h"
       ],
-      "languageLesson": "C 语言没有 class 和虚函数，「多态」靠结构体里放函数指针表（vtable/ops）来实现：调用方拿着一个指向 ops 表的指针，具体执行哪个函数由运行时装配决定。把统一状态码也收敛成一个 platform_status_t 枚举，是为了让上层能用同一套错误判断逻辑对待不同的底层实现。"
-    },
-    {
-      "order": 6,
-      "title": "板级装配对象",
-      "description": "platform_board.h 把当前这块板子绑定的三个抽象指针——ADC 采样流、字节流、USB 设备——打包成一个 platform_board_t，并提供 platform_board_get() 作为服务层唯一的取用入口。有了它，SERVICE 不需要知道对象是从哪来的，只需要问一次「本板有哪些外设」，就能拿到第 5 步定义的三张 ops 表。它也是抽象层与实现层之间的接缝：谁填这个结构体，谁就决定了这块板子长什么样。",
-      "nodeIds": [
-        "file:PLATFORM/platform_board.h"
-      ],
-      "languageLesson": "这类「板级描述结构体」在嵌入式里常叫 BSP handle 或 device tree 的简化版：C 里没有依赖注入框架，就用一个静态结构体把接口指针聚合起来，由链接期决定具体指向哪个实现。"
+      "languageLesson": "回调注册（callback registration）把“谁产生数据”和“谁处理数据”解耦：底层只保存函数指针，事件发生时反向调用。接口设计上，send 返回 BUSY 而不是阻塞等待，是裸机系统里避免死等、实现背压的常见手法。"
     },
     {
       "order": 7,
-      "title": "实现层：以 C 多态落地 ADC 采样流",
-      "description": "IMPLEMENT 层负责把第 5 步的抽象真正接到 STM32 上。impl_stm32_encoder_adc.c 以一个 base 前置结构体实现 C 语言多态：对象以 platform_adc_stream_t 作为首成员，于是同一个指针既能被当作 platform 对象传给服务层，也能被转回具体实现类型。它把 ops 表里的每个动作分发到 vendor 层，并把底层采样回调与四个中断入口（ADC_IRQHandler、DMA2_Stream0_IRQHandler、TIM2_IRQHandler、EXTI15_10_IRQHandler）桥接回 service——这是中断从硬件世界进入业务世界的唯一通道。对应的 .h 声明了对象获取接口与 DMA2 Stream0 的中断转接入口。",
+      "title": "实现层：板级对象组装",
+      "description": "IMPLEMENT/impl_stm32_board.c 用一个静态 platform_board_t，把编码器 ADC 采样流、USB CDC 字节流和 USB 设备三个实现对象聚合起来，这是抽象层与实现层之间唯一的装配点。impl_stm32_encoder_adc.c 则通过静态 ops 表把 init/start/stop/pause/resume 转发给 vendor 驱动，并把 vendor 的采样回调转成 platform 回调，同时提供 DMA 中断向量需要的转接入口。阅读这一层可以看清“接口如何落到具体板子”。",
       "nodeIds": [
+        "file:IMPLEMENT/impl_stm32_board.c",
         "file:IMPLEMENT/impl_stm32_encoder_adc.c",
         "file:IMPLEMENT/impl_stm32_encoder_adc.h"
       ],
-      "languageLesson": "「base 作为首成员」是 C 语言实现继承/多态的标准技巧：标准保证结构体首成员的地址与结构体本身相同，因此 platform_adc_stream_t* 与具体实现指针之间可以安全互转。这是 Linux 内核 container_of 宏背后的同一套假设。"
+      "languageLesson": "适配器模式（adapter）：实现层不重新实现业务，只做签名翻译和对象绑定。静态分配（static 对象 + 返回指针）在裸机固件中避免了 malloc，也让对象生命周期覆盖整个程序运行期。"
     },
     {
       "order": 8,
-      "title": "实现层：USB 链路与设备",
-      "description": "USB 这一侧同样有两个节点，但职责不同。impl_usb_cdc_stream.c 把 platform_byte_stream 的 init/send/set_rx_callback 分发到 vendor USB CDC 驱动，并额外做了一件关键的事——把 vendor 的状态码逐一映射成 platform 统一状态码，让服务层的错误处理不必认识 USB 的私有返回值；impl_usb_cdc_device.c 则只是把 init 一个动作挂到 platform_usb_device 的操作表上，转调 vendor 协议栈初始化。前者说明的是「适配层要负责语义翻译」，后者说明「抽象可以只暴露真正需要的那一个动作」。",
+      "title": "USB CDC 平台适配",
+      "description": "impl_usb_cdc_stream.c 实现字节流的 init/send/set_rx_callback：发送时把数据交给 vendor 写入接口并原样传递 BUSY，接收时把 vendor 层的 OUT 数据桥接回 service 注册的回调。impl_usb_cdc_device.c 则只负责设备初始化这一件事。这一层很薄，但它决定了 USB 的“忙”语义如何穿过抽象边界，进而触发第 4 步的暂停/恢复逻辑。",
       "nodeIds": [
         "file:IMPLEMENT/impl_usb_cdc_stream.c",
         "file:IMPLEMENT/impl_usb_cdc_stream.h",
         "file:IMPLEMENT/impl_usb_cdc_device.c",
         "file:IMPLEMENT/impl_usb_cdc_device.h"
-      ]
+      ],
+      "languageLesson": "薄适配层的价值在于语义转换而非代码量：把 vendor 的私有错误码翻译成 platform_status_t，把底层回调翻译成上层签名，从而让替换硬件只需重写这一层。"
     },
     {
       "order": 9,
-      "title": "板级组装：三个对象放进一个结构体",
-      "description": "impl_stm32_board.c 是 IMPLEMENT 层的收口：它把 ADC 采样流、USB 字节流与 USB 设备三个 platform 对象填进一个静态 platform_board_t，再通过 platform_board_get 对外暴露。读到这里，第 6 步那个空壳结构体终于有了内容，服务层也就有了可以调用的一切。这也是「换一块板子要改哪里」的答案——改这一个文件，其余各层都不动。",
-      "nodeIds": [
-        "file:IMPLEMENT/impl_stm32_board.c"
-      ]
-    },
-    {
-      "order": 10,
-      "title": "驱动层：编码器触发 ADC 与 Z 相测速",
-      "description": "这是整个工程最硬核的文件。vendor_stm32_encoder_adc.c 让 PA5 走 TIM2_CH1 单边沿捕获，每个上升沿触发一次 ADC1 采样，采样值由 DMA2 Stream0 以双缓冲（1024 半字）搬运，并在半满/满中断里分块回调给上层，CPU 开销极低；同时用 1 MHz 自由运行的 TIM5 打时间戳，配合 PB12/EXTI12 的 Z 相脉冲换算转速，作为转速帧的数据源。它还维护了一整组可原子快照的调试计数器——因为中断随时会改这些计数，上层必须能拿到自洽的一份。配套头文件定义了状态码、采样回调、初始化配置、转速结果与调试快照五种类型。",
+      "title": "寄存器级编码器触发采集",
+      "description": "VENDOR/vendor_stm32_encoder_adc.c 是整条数据通路的硬件源头：PA5 上的编码器上升沿经 TIM2_CH1 输入捕获产生 TRGO，硬件触发 ADC1（PA2/CH2，8 bit）转换，DMA2 Stream0 的 1024 点循环缓冲在半满/满中断上批量上送样本。PB12 的 Z 相脉冲用 TIM5 的 1 MHz 计数打时间戳，换算出转速并在超时后归零。头文件集中定义了配置、回调、转速结果和中断入口。",
       "nodeIds": [
         "file:VENDOR/vendor_stm32_encoder_adc.c",
         "file:VENDOR/vendor_stm32_encoder_adc.h"
       ],
-      "languageLesson": "DMA 双缓冲（double buffering）让 CPU 只处理「已经搬完的那一半」而硬件继续写另一半，是避免采样丢失的关键。跨中断共享的计数器要声明为 volatile，并且读侧通常需要临时关中断或用序号奇偶校验，才能拼出一次不被撕裂的快照。"
+      "languageLesson": "定时器 TRGO 硬件触发 ADC 可以做到采样率与转速天然同步，完全不占 CPU；DMA 循环模式加半传输/传输完成双中断，既能在缓冲写满前及时取数，又把每次搬运的粒度做大，降低中断频率。"
     },
     {
-      "order": 11,
-      "title": "驱动层：USB CDC 虚拟串口",
-      "description": "vendor_usb_cdc.c 负责把 ST 的 USB 设备栈用起来：初始化 USBD 协议栈、提供带环形缓冲的发送接口（写入后由 USB 中断异步发出），并把 USB 类驱动收到的 OUT 数据转交给注册的接收回调。正是这个回调，把上位机发来的 O\\0 / C\\0 命令一路送回第 4 步的服务层解析。到这里完整的数据闭环就打通了：命令下行经 USB→服务层→平台对象→驱动，采样上行经驱动→中断→环形队列→USB。",
+      "order": 10,
+      "title": "USB CDC 协议栈封装",
+      "description": "VENDOR/vendor_usb_cdc.c 封装 ST 的 USB Device 协议栈：初始化 CDC 类，把待发送数据写进发送环形缓冲区（支持回卷，空间不足时返回 BUSY），并注册/分发 USB OUT 数据回调。它是第 8 步适配层的真正落点，也是“为什么 USB 会忙”的答案。至此，从引脚到字节流的固件侧闭环完成。",
       "nodeIds": [
         "file:VENDOR/vendor_usb_cdc.c",
         "file:VENDOR/vendor_usb_cdc.h"
-      ]
+      ],
+      "languageLesson": "USB CDC 是全速 USB 虚拟串口，主机设置的波特率对它没有实际意义；真正的吞吐上限由端点包大小和主机轮询决定。发送环形缓冲的回卷（wrap-around）是嵌入式串口/USB 驱动的标准写法。"
+    },
+    {
+      "order": 11,
+      "title": "上位机串口桥接服务",
+      "description": "HOST/bridge.py 用 pyserial 打开两个 COM 槽位（数据口与调试口），通过本地 HTTP API 提供端口枚举、打开/关闭、写命令、状态查询和 chunked 原始字节流，同时托管页面。配套 README 解释了为何不用 Web Serial、如何识别 0483:5740 的数据口，以及上位机如何用状态机剥离 A5 5A 52 04 转速帧而不误伤 ADC 字节。这是理解固件协议在真实链路中如何被消费的关键一步。",
+      "nodeIds": [
+        "file:HOST/bridge.py",
+        "document:HOST/README.md"
+      ],
+      "languageLesson": "HTTP chunked transfer 允许服务端在连接不断开的情况下持续推送字节流，适合串口这种无固定长度的数据源；相比 Web Serial，本地桥接能按 COM 号选择端口，并给出“端口不存在/被占用”这类可诊断的错误。"
     },
     {
       "order": 12,
-      "title": "板级支撑：时钟、向量表与异常处理",
-      "description": "前面所有代码能跑起来，靠的是这一层的启动设施。system_stm32f4xx.c 里的 SystemInit 复位时钟与向量表并调用 SetSysClock 完成时钟切换，SystemCoreClockUpdate 则依据 RCC 寄存器回读刷新全局时钟频率变量——这个变量的准确性直接决定第 10 步测速换算是否正确。stm32f4xx_it.c 实现 Cortex-M 异常与外设中断：四个 fault 处理器进入死循环捕获现场，OTG_FS_IRQHandler 转发到 USB OTG 协议栈的 USBD_OTG_ISR_Handler，其余非 OTG 异常均为空桩；而 stm32f4xx.h 是 9000+ 行的 CMSIS 外设寄存器定义，在 USE_STDPERIPH_DRIVER 下包含 stm32f4xx_conf.h 接入标准外设库。",
+      "title": "单页仪表盘与启动脚本",
+      "description": "HOST/index.html 是一个无构建依赖的单文件仪表盘：从 bridge.py 的 /api 接口读取字节流，绘制 min/max 包络波形、转速仪表与趋势、8192 点 FFT，并解析 USART1 的 D 遥测行给出队列水位与错误告警。start.bat 负责检查 8765 端口、定位 python/py 解释器并启动桥接，随后优先用 Edge/Chrome 打开页面。两者合起来构成固件的“可观测终端”。",
       "nodeIds": [
-        "file:USER/system_stm32f4xx.h",
-        "file:USER/system_stm32f4xx.c",
-        "file:USER/stm32f4xx_it.c",
-        "file:USER/stm32f4xx_it.h",
-        "file:USER/stm32f4xx.h"
+        "file:HOST/index.html",
+        "file:HOST/start.bat"
       ],
-      "languageLesson": "首次读嵌入式工程时，寄存器定义头文件（stm32f4xx.h 这类）几乎不必逐行看：它只是把手册里的外设基地址与位域翻译成 C 结构体，当成一本字典，需要查某个寄存器时再翻即可。"
+      "languageLesson": "编码器触发采样的采样率随转速变化（约 RPM × 4000 / 60），所以时间轴与 FFT 频率轴优先用转速帧推算，而不是固定采样率；USB 背压会让“送达速率”低于“触发速率”，界面用两者偏差提示异常。"
     },
     {
       "order": 13,
-      "title": "SYSTEM：延时与底层系统控制",
-      "description": "SYSTEM 目录提供与业务无关的底层能力。delay.c 基于 SysTick 实现 delay_init/delay_us/delay_ms/delay_xms 并提供精确短延时，驱动初始化的时序等待都建立在它之上；sys.c 则用 ARMCLANG 的 __attribute__((naked)) 加内联汇编实现 WFI_SET（执行 WFI 休眠）、INTX_DISABLE/INTX_ENABLE（开关总中断）与 MSR_MSP（重设主栈指针），而 sys.h 还保留了位带别名宏与 PAout/PAin 风格的 GPIO 位操作宏。第 3 步主循环里那条被注释掉的 WFI 路径，最终就是落到这里的 WFI_SET——它没被启用，说明当前设计还没把休眠真正接进主循环。",
-      "nodeIds": [
-        "file:SYSTEM/delay/delay.c",
-        "file:SYSTEM/delay/delay.h",
-        "file:SYSTEM/sys/sys.c",
-        "file:SYSTEM/sys/sys.h"
-      ],
-      "languageLesson": "naked 函数告诉编译器不要生成函数序言/尾声，函数体必须全部由内联汇编构成——这是 C 里少数必须手写汇编的场景，常见于切换栈指针、执行 WFI 或进出中断这类编译器无法正确推断上下文的操作。"
-    },
-    {
-      "order": 14,
-      "title": "构建与配置：两套工程定义",
-      "description": "同一个工程现在有两份构建定义。USER/USMART.uvprojx 是 Keil MDK 工程，定义源文件分组、包含路径与编译选项，器件目标已由 STM32F407VETx 迁移到 STM32F407ZGTx（IROM 1MB / IRAM 128KB+64KB）；USER/.eide/eide.yml 是 EIDE 工程主定义，声明 ARMCLANG(AC6) 工具链目标 USMART、源文件虚拟分组树与头文件搜索路径，其分组结构与 Keil 工程逐一对应，是本次从 Keil MDK 迁往 EIDE 的核心描述，另有 env.ini 指定输出目录、files.options.yml 承载按文件粒度的编译选项（当前为空）。keilkilll.bat 则是配套的清理脚本，递归删除 .bak/.obj/.axf/.map 等中间产物，把目录还原成可直接打包提交的干净状态。",
+      "title": "构建工具链与工程配置",
+      "description": "USER/USMART.uvprojx 是 Keil MDK 的权威工程定义，包含 16 个源文件分组、包含路径与编译选项；USER/.eide/eide.yml 则是 VSCode EIDE 的等价配置，指定 AC6 工具链、Cortex-M4 参数、存储布局和 J-Link 下载。keilkilll.bat 递归清理 .o/.axf/.crf 等中间产物，.clang-format 统一代码风格。读过这些文件，就能判断某个源文件是否真的参与编译，以及产物如何烧录。",
       "nodeIds": [
         "config:USER/USMART.uvprojx",
         "config:USER/.eide/eide.yml",
-        "config:USER/.eide/env.ini",
-        "config:USER/.eide/files.options.yml",
-        "file:keilkilll.bat"
+        "file:keilkilll.bat",
+        "config:USER/.clang-format"
       ],
-      "languageLesson": "ARMCC 到 ARMCLANG(AC6) 的迁移不只是换编译器名字：AC6 基于 Clang，对 GNU 扩展、内联汇编语法和未定义行为的处理都比老 ARMCC 严格得多，这正是为什么把初始化中间产物排除出版本控制（keilkilll.bat）在迁移期格外重要——出问题时能先排除脏构建。"
+      "languageLesson": "Keil 工程用 .uvprojx 的源文件组决定参与编译的文件；迁移到 ARMCLANG（AC6）后需要按编译器重新设置优化、语言标准与 scatter 文件。工程名 USMART 沿用了参考工程，与本项目业务无关，不要被名字误导。"
     },
     {
-      "order": 15,
-      "title": "遗留休眠代码：说出来，而不是假装它在跑",
-      "description": "最后诚实地交代工程里的死重。SYSTEM/usart/usart.c 整份 USART1 命令行调试实现（USART1_Init、USART1_IRQHandler 以及 D/V/d/v/R/r/U 协议解析、DM430_Control 调用）已被全部注释，有效代码为零行，对应的 usart.h 同样不参与构建；USMART/ 是正点原子的串口调试组件，usmart.c 只剩 12 行空行实现已被移除，usmart.h 与 usmart_str.c、usmart_config.c 也都整体处于注释状态，三个 .c 文件均为纯注释。它们之所以还在树里，是因为曾被当作调试入口依赖过，删掉前需要确认没有文档或注释在建链；USMART/readme.txt 记录了这个组件 V1.4 到 V3.1 的功能演进，属于历史资料。读懂这一层，你才知道哪些文件可以放心不看。",
+      "order": 14,
+      "title": "遗留调试组件辨析",
+      "description": "USMART/ 下的源码是正点原子串口命令行调试组件的遗留物：usmart.c 为空占位，usmart_config.c 与 usmart_str.c 整文件被注释，SYSTEM/usart/usart.c 也是一份被整体注释的旧 USART1 调试实现。它们既不在 Keil 工程里，也不提供任何被调用的符号，保留 readme.txt 只是记录版本历史。认识这一层能避免在阅读时把无效代码误当成运行路径，也能理解工程命名的来源。",
       "nodeIds": [
-        "file:SYSTEM/usart/usart.c",
-        "file:SYSTEM/usart/usart.h",
-        "file:USMART/usmart.c",
         "file:USMART/usmart.h",
+        "file:USMART/usmart_config.c",
+        "file:SYSTEM/usart/usart.c",
         "document:USMART/readme.txt"
       ],
-      "languageLesson": "用「把整个文件注释掉」的方式让代码退出构建，是一种应当避免的历史做法：它既没从构建系统里真正移除文件，又让 IDE 的符号索引、静态分析和 code review 全部失准。现代做法是直接从工程分组里摘掉文件并交给版本控制保存历史。"
+      "languageLesson": "判断 C 项目中的死代码，最可靠的是看构建脚本（.uvprojx / Makefile / CMakeLists）的源文件列表，而不是目录里有什么文件；头文件仍可能被包含，因此还要确认对应实现是否真的链接进固件。"
     }
   ]
 }

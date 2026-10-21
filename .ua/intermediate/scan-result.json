@@ -1,10 +1,12 @@
 {
   "name": "MCU_revision1",
-  "description": "基于 STM32F407 的裸机固件，以编码器信号作为硬件触发源驱动 ADC 采样，采样数据经 DMA 双缓冲与两级环形队列缓冲后由 USB CDC 虚拟串口上传至上位机，并利用每转一次的 Z 相脉冲测量转速。工程采用 APP → SERVICE → PLATFORM ← IMPLEMENT → VENDOR 的分层多态架构，业务逻辑与 STM32 硬件完全解耦。",
+  "description": "基于 STM32F407 的裸机固件：以编码器信号作为硬件触发源驱动 ADC 采样，数据经 DMA 双缓冲与两级环形队列缓冲后由 USB CDC 虚拟串口上传，并利用每转一次的 Z 相脉冲测量转速。工程采用 APP → SERVICE → PLATFORM ← IMPLEMENT → VENDOR 的分层多态架构，另附 HOST 目录下基于 Python 桥接的网页版上位机，用于实时波形分析、频谱计算与转速监控。",
   "languages": [
     "batch",
     "c",
+    "html",
     "markdown",
+    "python",
     "txt",
     "yaml"
   ],
@@ -13,7 +15,7 @@
     {
       "path": "APP/app_main.c",
       "language": "c",
-      "sizeLines": 214,
+      "sizeLines": 216,
       "fileCategory": "code"
     },
     {
@@ -21,6 +23,30 @@
       "language": "c",
       "sizeLines": 12,
       "fileCategory": "code"
+    },
+    {
+      "path": "HOST/README.md",
+      "language": "markdown",
+      "sizeLines": 143,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "HOST/bridge.py",
+      "language": "python",
+      "sizeLines": 500,
+      "fileCategory": "code"
+    },
+    {
+      "path": "HOST/index.html",
+      "language": "html",
+      "sizeLines": 2550,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "HOST/start.bat",
+      "language": "batch",
+      "sizeLines": 56,
+      "fileCategory": "script"
     },
     {
       "path": "IMPLEMENT/impl_stm32_board.c",
@@ -97,7 +123,7 @@
     {
       "path": "README.md",
       "language": "markdown",
-      "sizeLines": 246,
+      "sizeLines": 260,
       "fileCategory": "docs"
     },
     {
@@ -157,7 +183,7 @@
     {
       "path": "USER/.eide/eide.yml",
       "language": "yaml",
-      "sizeLines": 325,
+      "sizeLines": 365,
       "fileCategory": "config"
     },
     {
@@ -175,7 +201,7 @@
     {
       "path": "USER/USMART.code-workspace",
       "language": "code-workspace",
-      "sizeLines": 47,
+      "sizeLines": 8,
       "fileCategory": "code"
     },
     {
@@ -293,14 +319,18 @@
       "fileCategory": "script"
     }
   ],
-  "totalFiles": 47,
-  "filteredByIgnore": 509,
+  "totalFiles": 51,
+  "filteredByIgnore": 135,
   "estimatedComplexity": "moderate",
   "importMap": {
     "APP/app_main.c": [
       "APP/app_main.h"
     ],
     "APP/app_main.h": [],
+    "HOST/README.md": [],
+    "HOST/bridge.py": [],
+    "HOST/index.html": [],
+    "HOST/start.bat": [],
     "IMPLEMENT/impl_stm32_board.c": [
       "IMPLEMENT/impl_stm32_encoder_adc.h",
       "IMPLEMENT/impl_usb_cdc_device.h",

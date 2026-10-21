@@ -12,6 +12,8 @@ typedef struct {
     uint16_t length;
 } app_debug_line_t;
 
+
+
 /* The legacy CMSIS headers in this project do not provide __WFI(). */
 static __attribute__((naked)) void app_cpu_wait_for_interrupt(void)
 {

@@ -1,11 +1,11 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "dd6103caddd77f1556beb6be428107fbbd19f06c",
-  "generatedAt": "2026-10-16T10:39:41.469Z",
+  "gitCommitHash": "784b20ccd4ed673947183bb1202329bfd8df51fe",
+  "generatedAt": "2026-10-21T02:30:47.223Z",
   "files": {
     "APP/app_main.c": {
       "filePath": "APP/app_main.c",
-      "contentHash": "07782d872ba8284baa6863466e7a3df9a2e6e899440729644bb1cf092930190a",
+      "contentHash": "187590b64fec2ffa23e218aba0f87ca28986e1e6f7732a93b73fe402fef8bb82",
       "functions": [
         {
           "name": "app_cpu_wait_for_interrupt",
@@ -138,7 +138,7 @@
       "exports": [
         "app_main"
       ],
-      "totalLines": 215,
+      "totalLines": 217,
       "hasStructuralAnalysis": true
     },
     "APP/app_main.h": {
@@ -150,6 +150,162 @@
       "exports": [],
       "totalLines": 13,
       "hasStructuralAnalysis": true
+    },
+    "HOST/README.md": {
+      "filePath": "HOST/README.md",
+      "contentHash": "b45f3b588231fc3e3a2c43475bca15fa0cbd8a9a0be3cb448d35e27fb907012a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 144,
+      "hasStructuralAnalysis": false
+    },
+    "HOST/bridge.py": {
+      "filePath": "HOST/bridge.py",
+      "contentHash": "035ec8177d80ab8bbb43bd80783a984c5ba14db187edf9879b048351711f8042",
+      "functions": [
+        {
+          "name": "list_serial_ports",
+          "params": [],
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 25
+        }
+      ],
+      "classes": [
+        {
+          "name": "FakeSerial",
+          "methods": [
+            "__init__",
+            "write",
+            "flush",
+            "read",
+            "close"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 82
+        },
+        {
+          "name": "SerialSlot",
+          "methods": [
+            "__init__",
+            "open",
+            "close",
+            "write",
+            "read",
+            "status"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 91
+        },
+        {
+          "name": "Handler",
+          "methods": [
+            "log_message",
+            "_origin_ok",
+            "_cors",
+            "_json",
+            "_err",
+            "do_OPTIONS",
+            "do_GET",
+            "do_POST",
+            "_serve_index",
+            "_stream"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 201
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "math",
+          "specifiers": [
+            "math"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "http.server",
+          "specifiers": [
+            "BaseHTTPRequestHandler",
+            "ThreadingHTTPServer"
+          ]
+        },
+        {
+          "source": "urllib.parse",
+          "specifiers": [
+            "urlparse",
+            "parse_qs"
+          ]
+        }
+      ],
+      "exports": [
+        "FakeSerial",
+        "SerialSlot",
+        "list_serial_ports",
+        "Handler",
+        "main"
+      ],
+      "totalLines": 501,
+      "hasStructuralAnalysis": true
+    },
+    "HOST/index.html": {
+      "filePath": "HOST/index.html",
+      "contentHash": "9d813b2c1cc1e7b2e81f914045396e909cfa56a8e0ff2e85bfa0234602159ae9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2551,
+      "hasStructuralAnalysis": false
+    },
+    "HOST/start.bat": {
+      "filePath": "HOST/start.bat",
+      "contentHash": "4de88b6c75f0aeb68ca8295cb64dcc7a5b5d513aa46b37da5cdebbff92b503cb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 57,
+      "hasStructuralAnalysis": false
     },
     "IMPLEMENT/impl_stm32_board.c": {
       "filePath": "IMPLEMENT/impl_stm32_board.c",
@@ -617,12 +773,12 @@
     },
     "README.md": {
       "filePath": "README.md",
-      "contentHash": "764ffa0d22e5b7677b175ed84a3beeacc88c667d6224a6749fa7622579e62be0",
+      "contentHash": "cd9e98dd0a0e4eb242e452f9feb4151e4eec589eaf0382371fda790baa3e3bf7",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 247,
+      "totalLines": 261,
       "hasStructuralAnalysis": false
     },
     "SERVICE/adc_stream_service.c": {
@@ -1064,12 +1220,12 @@
     },
     "USER/.eide/eide.yml": {
       "filePath": "USER/.eide/eide.yml",
-      "contentHash": "9a40f6e1970925fd76abedd2e96cd5825233af6794850c8faf8f77d9e6c3cc79",
+      "contentHash": "683d105cdc46b9e3bd2a5fa4b7e2d46fc7501a7a740872718fcff28c0089a731",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 326,
+      "totalLines": 366,
       "hasStructuralAnalysis": false
     },
     "USER/.eide/env.ini": {
@@ -1094,12 +1250,12 @@
     },
     "USER/USMART.code-workspace": {
       "filePath": "USER/USMART.code-workspace",
-      "contentHash": "18706bf93b50ae9b7014f1db5388a7abb936824285cb345ec1f6c2522d93180d",
+      "contentHash": "b3c76779653cdb7c551974ceba1d1e9870f7420edc7289e69ac377005cc844b5",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 48,
+      "totalLines": 9,
       "hasStructuralAnalysis": false
     },
     "USER/USMART.uvprojx": {
