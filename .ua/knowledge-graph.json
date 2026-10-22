@@ -3,18 +3,22 @@
   "project": {
     "name": "MCU_revision1",
     "languages": [
-      "c",
-      "python",
-      "markup",
-      "yaml",
       "batch",
+      "c",
+      "code-workspace",
+      "config",
+      "html",
       "markdown",
-      "txt"
+      "python",
+      "txt",
+      "unknown",
+      "uvprojx",
+      "yaml"
     ],
     "frameworks": [],
     "description": "STM32F407 编码器触发 ADC 采集与 USB CDC 上传固件，含 HOST 上位机工具",
-    "analyzedAt": "2026-10-21T02:30:35.704Z",
-    "gitCommitHash": "b16b75d8c6756d0a136fc7fd147e1aa2537aa754"
+    "analyzedAt": "2026-10-22T00:50:19.274Z",
+    "gitCommitHash": "c44b74e193c275d2a11f1579705c9cd0458ee26f"
   },
   "nodes": [
     {
@@ -2934,51 +2938,25 @@
         "tooling"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "document:操作手册.md",
+      "type": "document",
+      "name": "操作手册.md",
+      "filePath": "操作手册.md",
+      "summary": "面向开发与测试人员的完整操作手册，覆盖系统组成与数据流、环境准备、硬件接线（PA2/PA5/PB12/USB）、Keil 与 EIDE 双路构建、烧录与首次上电检查、HOST 上位机与手动串口操作、通信协议（4F 00 / 43 00 命令与 9 字节转速帧）、USART1 `D ...` 遥测字段与 hw 位定义、可调宏参数、故障排查表及日常维护。",
+      "tags": [
+        "documentation",
+        "操作指南",
+        "固件部署",
+        "通信协议",
+        "故障排查"
+      ],
+      "complexity": "complex",
+      "languageNotes": "中文 Markdown 技术手册，13 个一级章节、57 个标题，大量使用表格承载接线表、遥测字段说明与排障对照，并以 ASCII 图描述编码器到 USB 的数据流。"
     }
   ],
   "edges": [
-    {
-      "source": "file:IMPLEMENT/impl_stm32_board.c",
-      "target": "file:IMPLEMENT/impl_stm32_encoder_adc.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:IMPLEMENT/impl_stm32_board.c",
-      "target": "file:IMPLEMENT/impl_usb_cdc_device.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:IMPLEMENT/impl_stm32_board.c",
-      "target": "file:IMPLEMENT/impl_usb_cdc_stream.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:IMPLEMENT/impl_stm32_encoder_adc.c",
-      "target": "file:IMPLEMENT/impl_stm32_encoder_adc.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:IMPLEMENT/impl_usb_cdc_device.c",
-      "target": "file:IMPLEMENT/impl_usb_cdc_device.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
-      "target": "file:IMPLEMENT/impl_usb_cdc_stream.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
     {
       "source": "file:IMPLEMENT/impl_stm32_encoder_adc.h",
       "target": "file:PLATFORM/platform_adc_stream.h",
@@ -3807,34 +3785,6 @@
     },
     {
       "source": "file:APP/app_main.c",
-      "target": "file:APP/app_main.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:SERVICE/adc_stream_service.c",
-      "target": "file:SERVICE/adc_stream_service.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:SYSTEM/delay/delay.c",
-      "target": "file:SYSTEM/delay/delay.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:SYSTEM/sys/sys.c",
-      "target": "file:SYSTEM/sys/sys.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:APP/app_main.c",
       "target": "file:SERVICE/adc_stream_service.c",
       "type": "depends_on",
       "direction": "forward",
@@ -4128,20 +4078,6 @@
       "weight": 0.8
     },
     {
-      "source": "file:USER/stm32f4xx_it.c",
-      "target": "file:USER/stm32f4xx_it.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:USER/system_stm32f4xx.c",
-      "target": "file:USER/stm32f4xx.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
       "source": "file:USER/stm32f4xx.h",
       "target": "file:USER/stm32f4xx_conf.h",
       "type": "depends_on",
@@ -4245,20 +4181,6 @@
       "type": "depends_on",
       "direction": "forward",
       "weight": 0.6
-    },
-    {
-      "source": "file:VENDOR/vendor_stm32_encoder_adc.c",
-      "target": "file:VENDOR/vendor_stm32_encoder_adc.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
-    },
-    {
-      "source": "file:VENDOR/vendor_usb_cdc.c",
-      "target": "file:VENDOR/vendor_usb_cdc.h",
-      "type": "imports",
-      "direction": "forward",
-      "weight": 0.7
     },
     {
       "source": "file:VENDOR/vendor_stm32_encoder_adc.c",
@@ -5141,6 +5063,174 @@
       "type": "documents",
       "direction": "forward",
       "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "document:README.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "document:HOST/README.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "file:USER/main.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "file:APP/app_main.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "file:SERVICE/adc_stream_service.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "file:HOST/bridge.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:操作手册.md",
+      "target": "config:USER/USMART.uvprojx",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:APP/app_main.c",
+      "target": "file:APP/app_main.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_board.c",
+      "target": "file:IMPLEMENT/impl_stm32_encoder_adc.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_board.c",
+      "target": "file:IMPLEMENT/impl_usb_cdc_device.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_board.c",
+      "target": "file:IMPLEMENT/impl_usb_cdc_stream.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_stm32_encoder_adc.c",
+      "target": "file:IMPLEMENT/impl_stm32_encoder_adc.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_device.c",
+      "target": "file:IMPLEMENT/impl_usb_cdc_device.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:IMPLEMENT/impl_usb_cdc_stream.c",
+      "target": "file:IMPLEMENT/impl_usb_cdc_stream.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:SERVICE/adc_stream_service.c",
+      "target": "file:SERVICE/adc_stream_service.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:SYSTEM/delay/delay.c",
+      "target": "file:SYSTEM/delay/delay.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:SYSTEM/sys/sys.c",
+      "target": "file:SYSTEM/sys/sys.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:USER/stm32f4xx_it.c",
+      "target": "file:USER/stm32f4xx_it.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:USER/system_stm32f4xx.c",
+      "target": "file:USER/stm32f4xx.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:VENDOR/vendor_stm32_encoder_adc.c",
+      "target": "file:VENDOR/vendor_stm32_encoder_adc.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
+    },
+    {
+      "source": "file:VENDOR/vendor_usb_cdc.c",
+      "target": "file:VENDOR/vendor_usb_cdc.h",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7,
+      "recoveredFromImportMap": true
     }
   ],
   "layers": [
@@ -5262,7 +5352,8 @@
       "nodeIds": [
         "document:README.md",
         "document:USMART/readme.txt",
-        "document:HOST/README.md"
+        "document:HOST/README.md",
+        "document:操作手册.md"
       ]
     }
   ],

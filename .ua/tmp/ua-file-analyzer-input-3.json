@@ -1,0 +1,7 @@
+{
+  "projectRoot": "E:/Desktop/MCU_revision1",
+  "batchFiles": [
+    {"path": "操作手册.md", "language": "markdown", "sizeLines": 498, "fileCategory": "docs"}
+  ],
+  "batchImportData": {"操作手册.md": []}
+}

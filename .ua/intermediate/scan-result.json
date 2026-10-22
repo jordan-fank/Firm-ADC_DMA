@@ -317,9 +317,15 @@
       "language": "batch",
       "sizeLines": 27,
       "fileCategory": "script"
+    },
+    {
+      "path": "操作手册.md",
+      "language": "markdown",
+      "sizeLines": 498,
+      "fileCategory": "docs"
     }
   ],
-  "totalFiles": 51,
+  "totalFiles": 52,
   "filteredByIgnore": 126,
   "estimatedComplexity": "moderate",
   "importMap": {
@@ -399,7 +405,8 @@
       "VENDOR/vendor_usb_cdc.h"
     ],
     "VENDOR/vendor_usb_cdc.h": [],
-    "keilkilll.bat": []
+    "keilkilll.bat": [],
+    "操作手册.md": []
   },
-  "contentDigest": "4257f4f05a08b854a84a81ebb22c77db5835c6f6e57a1d780735040ec8957962"
+  "contentDigest": "4ef9c82910a6712d7004c34a9301bc36c0fd80f3ead748ff934f08c60a65875b"
 }

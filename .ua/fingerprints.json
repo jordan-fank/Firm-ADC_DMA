@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "b16b75d8c6756d0a136fc7fd147e1aa2537aa754",
-  "generatedAt": "2026-10-21T02:30:47.223Z",
+  "gitCommitHash": "c44b74e193c275d2a11f1579705c9cd0458ee26f",
+  "generatedAt": "2026-10-22T00:50:19.467Z",
   "files": {
     "APP/app_main.c": {
       "filePath": "APP/app_main.c",
@@ -1977,6 +1977,16 @@
       "imports": [],
       "exports": [],
       "totalLines": 28,
+      "hasStructuralAnalysis": false
+    },
+    "操作手册.md": {
+      "filePath": "操作手册.md",
+      "contentHash": "9c6aaaf91a0fd138e7b69c5b6e0c78b9e0cda3da9e31b29682cd220168ea3a0d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 499,
       "hasStructuralAnalysis": false
     }
   }
