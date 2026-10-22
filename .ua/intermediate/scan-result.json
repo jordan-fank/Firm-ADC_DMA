@@ -320,7 +320,7 @@
     }
   ],
   "totalFiles": 51,
-  "filteredByIgnore": 135,
+  "filteredByIgnore": 126,
   "estimatedComplexity": "moderate",
   "importMap": {
     "APP/app_main.c": [
@@ -400,5 +400,6 @@
     ],
     "VENDOR/vendor_usb_cdc.h": [],
     "keilkilll.bat": []
-  }
+  },
+  "contentDigest": "4257f4f05a08b854a84a81ebb22c77db5835c6f6e57a1d780735040ec8957962"
 }

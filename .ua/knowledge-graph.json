@@ -14,7 +14,7 @@
     "frameworks": [],
     "description": "STM32F407 编码器触发 ADC 采集与 USB CDC 上传固件，含 HOST 上位机工具",
     "analyzedAt": "2026-10-21T02:30:35.704Z",
-    "gitCommitHash": "784b20ccd4ed673947183bb1202329bfd8df51fe"
+    "gitCommitHash": "b16b75d8c6756d0a136fc7fd147e1aa2537aa754"
   },
   "nodes": [
     {
