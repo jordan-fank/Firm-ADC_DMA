@@ -15,6 +15,11 @@
 
 version: "2.1"
 options:
-    USMART:
-        files: {}
+    ADC_USB:
+        # [NEW] FIR: DSP 内层循环在全局 -O1 下寄存器溢出严重（约 52% CPU），
+        # 只给这三个文件单独开 -O2（约 22%），其余文件保持全局 -O1。
+        files:
+            'CMSIS_DSP/Source/arm_fir_q15.c': -O2
+            'CMSIS_DSP/Source/arm_fir_init_q15.c': -O2
+            'SERVICE/adc_fir.c': -O2
         virtualPathFiles: {}

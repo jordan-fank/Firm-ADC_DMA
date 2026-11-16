@@ -1,3 +1,8 @@
+/**
+ * @file impl_usb_cdc_stream.h
+ * @brief USB CDC 字节流的 platform 实现层接口。
+ */
+
 #ifndef IMPL_USB_CDC_STREAM_H
 #define IMPL_USB_CDC_STREAM_H
 

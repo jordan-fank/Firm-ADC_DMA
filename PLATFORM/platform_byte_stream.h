@@ -1,3 +1,11 @@
+/**
+ * @file platform_byte_stream.h
+ * @brief 字节流抽象接口（纯头文件，不含任何 STM32 实现）。
+ *
+ * 把“发送一段字节 / 接收回调”从具体链路（USB CDC、UART 等）中抽象出来，
+ * service 层只依赖本文件的 ops 表。
+ */
+
 #ifndef PLATFORM_BYTE_STREAM_H
 #define PLATFORM_BYTE_STREAM_H
 

@@ -1,3 +1,11 @@
+/**
+ * @file impl_usb_cdc_stream.c
+ * @brief 实现层：把 platform_byte_stream 抽象适配到 USB CDC 驱动。
+ *
+ * 本文件只做状态码映射和回调桥接，真正的 USB 收发在 VENDOR/vendor_usb_cdc.c。
+ * 数据通路：SERVICE 调用 send() -> vendor_usb_cdc_write() -> ST CDC 发送环。
+ */
+
 #include "impl_usb_cdc_stream.h"
 #include "vendor_usb_cdc.h"
 

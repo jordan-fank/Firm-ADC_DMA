@@ -1,3 +1,8 @@
+/**
+ * @file app_main.h
+ * @brief 应用层入口声明。
+ */
+
 #ifndef APP_MAIN_H
 #define APP_MAIN_H
 

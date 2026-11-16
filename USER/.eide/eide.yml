@@ -1,5 +1,5 @@
 version: "4.1"
-name: USMART
+name: ADC_USB
 type: ARM
 deviceName: null
 packDir: .pack/Keil/STM32F4xx_DFP.3.1.1
@@ -31,6 +31,9 @@ virtualFolder:
       files:
         - path: ../SERVICE/adc_stream_service.c
         - path: ../SERVICE/adc_stream_service.h
+        - path: ../SERVICE/adc_fir.c
+        - path: ../SERVICE/adc_fir.h
+        - path: ../SERVICE/adc_fir_coeffs.h
       folders: []
     - name: PLATFORM
       files:
@@ -43,6 +46,8 @@ virtualFolder:
     - name: IMPLEMENT
       files:
         - path: ../IMPLEMENT/impl_stm32_board.c
+        - path: ../IMPLEMENT/impl_stm32_debug_uart.c
+        - path: ../IMPLEMENT/impl_stm32_debug_uart.h
         - path: ../IMPLEMENT/impl_stm32_encoder_adc.c
         - path: ../IMPLEMENT/impl_stm32_encoder_adc.h
         - path: ../IMPLEMENT/impl_usb_cdc_device.c
@@ -121,6 +126,11 @@ virtualFolder:
         - path: ../USB/USB_USER/src/usbd_desc.c
         - path: ../USB/USB_USER/src/usbd_usr.c
       folders: []
+    - name: CMSIS_DSP
+      files:
+        - path: ../CMSIS_DSP/Source/arm_fir_q15.c
+        - path: ../CMSIS_DSP/Source/arm_fir_init_q15.c
+      folders: []
     - name: ::CMSIS
       files: []
       folders: []
@@ -129,26 +139,21 @@ outDir: build
 miscInfo:
   uid: 9f9a15e4f84467b4048fe0fbfe492c15
 targets:
-  USMART:
+  ADC_USB:
     cppPreprocessAttrs:
       defineList:
         - STM32F40_41xxx
         - USE_STDPERIPH_DRIVER
         - USE_STM324xG_EVAL
         - USE_USB_OTG_FS
+        - ARM_MATH_LOOPUNROLL
       incList:
         - ../CORE
         - .
-        - ../USMART
         - ../FWLIB/inc
         - ../HARDWARE
         - ../SYSTEM/delay
         - ../SYSTEM/sys
-        - ../SYSTEM/usart
-        - ../FATFS/exfuns
-        - ../FATFS/doc
-        - ../FATFS/src
-        - ../FATFS
         - ../USB/USB_BOARD
         - ../USB/USB_CDC/inc
         - ../USB/USB_DRIVE/inc
@@ -159,8 +164,9 @@ targets:
         - ../PLATFORM
         - ../IMPLEMENT
         - ../VENDOR
+        - ../CMSIS_DSP/Include
+        - ../CMSIS_DSP/Core
         - .cmsis/include
-        - RTE/_USMART
       libList: []
     excludeList: []
     settings:

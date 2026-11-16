@@ -1,3 +1,8 @@
+/**
+ * @file impl_stm32_encoder_adc.h
+ * @brief 编码器触发 ADC 的 platform 实现层接口。
+ */
+
 #ifndef IMPL_STM32_ENCODER_ADC_H
 #define IMPL_STM32_ENCODER_ADC_H
 

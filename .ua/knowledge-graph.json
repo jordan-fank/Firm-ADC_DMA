@@ -17,8 +17,8 @@
     ],
     "frameworks": [],
     "description": "STM32F407 编码器触发 ADC 采集与 USB CDC 上传固件，含 HOST 上位机工具",
-    "analyzedAt": "2026-10-22T00:50:19.274Z",
-    "gitCommitHash": "c44b74e193c275d2a11f1579705c9cd0458ee26f"
+    "analyzedAt": "2026-10-22T07:43:08.670Z",
+    "gitCommitHash": "7725ae3ac47192f34b585f3cbd6a7752c02aa9bf"
   },
   "nodes": [
     {
@@ -2954,6 +2954,22 @@
       ],
       "complexity": "complex",
       "languageNotes": "中文 Markdown 技术手册，13 个一级章节、57 个标题，大量使用表格承载接线表、遥测字段说明与排障对照，并以 ASCII 图描述编码器到 USB 的数据流。"
+    },
+    {
+      "id": "file:启动面板.bat",
+      "type": "file",
+      "name": "启动面板.bat",
+      "filePath": "启动面板.bat",
+      "summary": "一键启动 Understand Anything 知识图谱面板的 Windows 批处理脚本：在 Claude 插件缓存中按修改时间定位最新的 dashboard 目录，切换到其中并以 127.0.0.1 启动 Vite 开发服务器，浏览器会自动打开带 token 的地址，关闭窗口即停止服务。",
+      "tags": [
+        "启动脚本",
+        "batch",
+        "知识图谱",
+        "开发服务器",
+        "windows"
+      ],
+      "complexity": "simple",
+      "languageNotes": "用 chcp 65001 切换 UTF-8 代码页以正确显示中文提示；通过 for /f 遍历 dir /o-d 的输出选取最新版本插件目录；使用 call 调用 vite.cmd，避免批处理在执行外部命令后提前终止。"
     }
   ],
   "edges": [
@@ -5240,7 +5256,8 @@
       "description": "固件业务编排入口，负责初始化 ADC 数据流服务与 USART1 调试遥测，并在主循环中驱动采样、上报与休眠判断。",
       "nodeIds": [
         "file:APP/app_main.c",
-        "file:APP/app_main.h"
+        "file:APP/app_main.h",
+        "file:启动面板.bat"
       ]
     },
     {

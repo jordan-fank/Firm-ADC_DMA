@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "c44b74e193c275d2a11f1579705c9cd0458ee26f",
-  "generatedAt": "2026-10-22T00:50:19.467Z",
+  "gitCommitHash": "7725ae3ac47192f34b585f3cbd6a7752c02aa9bf",
+  "generatedAt": "2026-10-22T07:43:08.839Z",
   "files": {
     "APP/app_main.c": {
       "filePath": "APP/app_main.c",
@@ -1987,6 +1987,16 @@
       "imports": [],
       "exports": [],
       "totalLines": 499,
+      "hasStructuralAnalysis": false
+    },
+    "启动面板.bat": {
+      "filePath": "启动面板.bat",
+      "contentHash": "2c42e49a5826bad45fadc3629e50d26669836a11479d62acfa35ab37f978b1a9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 30,
       "hasStructuralAnalysis": false
     }
   }

@@ -1,0 +1,62 @@
+{
+    "output_dir": "output",
+    "auto_naming": true,
+    "cloudcompare_path": "C:\\Program Files\\CloudCompare\\CloudCompare.exe",
+    "serial": {
+        "baud_rate": 115200,
+        "data_bits": 8,
+        "stop_bits": 1,
+        "parity": "none",
+        "buffer_size": 20971520
+    },
+    "hardware_monitor": {
+        "enabled": true,
+        "interval_normal": 1000,
+        "interval_busy": 3000
+    },
+    "window": {
+        "width": 1360,
+        "height": 800,
+        "remember_size": false,
+        "remember_position": false
+    },
+    "rendering_3d": {
+        "auto_rotate": false,
+        "rotation_speed": 20.0,
+        "point_size": 3.0,
+        "color_scale": 1.0,
+        "max_points": 500000,
+        "enable_depth_scaling": true,
+        "depth_scale_factor": 0.3,
+        "color_mode": "grayscale",
+        "sampling_method": "random",
+        "enable_gpu_detection": true,
+        "enable_ssao": false,
+        "lod_enabled": false,
+        "enable_edl": false,
+        "render_points_as_spheres": true,
+        "anti_aliasing": "msaa"
+    },
+    "imaging": {
+        "auto_image_after_save": true,
+        "auto_3d": true,
+        "flip_horizontal": false,
+        "width": 4000,
+        "ds_initial": 0.05,
+        "upsample_factor": 4,
+        "denoise_size": 3
+    },
+    "http_server": {
+        "port": 8000,
+        "enabled": true
+    },
+    "web_preview": {
+        "max_points": 50000,
+        "enable_cache": true
+    },
+    "segmentation": {
+        "model_path": "models/autoencoder_model.pth",
+        "dictionary_path": "models/dictionary.pkl",
+        "reference_image": "models/reference.png"
+    }
+}

@@ -1,3 +1,22 @@
+/**
+ * @file impl_stm32_encoder_adc.c
+ * @brief 实现层：把 platform_adc_stream 抽象适配到 STM32 编码器触发 ADC 驱动。
+ *
+ * 分层位置：SERVICE -> PLATFORM(抽象) -> IMPLEMENT(本文件) -> VENDOR(寄存器驱动)。
+ *
+ * 本文件做三件事：
+ *   1. 用 ops 函数表把 init/start/stop/pause/resume 等抽象调用转发到 vendor 层；
+ *   2. 把 vendor 层的采样回调桥接成 platform/service 层的回调；
+ *   3. 承接启动文件里的中断向量（ADC/DMA/TIM/EXTI），再转发给 vendor 层。
+ *
+ * 中断转发关系：
+ *   ADC_IRQHandler          -> vendor_stm32_encoder_adc_adc_irq_handler
+ *   DMA2_Stream0_IRQHandler -> vendor_stm32_encoder_adc_dma_irq_handler（采样主通路）
+ *   TIM2_IRQHandler         -> vendor_stm32_encoder_adc_tim_irq_handler（当前未启用）
+ *   TIM3_IRQHandler         -> 旧版兼容入口（当前未启用）
+ *   EXTI15_10_IRQHandler    -> vendor_stm32_encoder_adc_z_irq_handler（Z 相测速）
+ */
+
 #include "impl_stm32_encoder_adc.h"
 #include "vendor_stm32_encoder_adc.h"
 
@@ -337,7 +356,7 @@ void impl_stm32_encoder_adc_tim_irq_handler(void)
 }
 
 /**
- * @brief Legacy TIM3 compatibility entry; Z-phase speed measurement does not use it.
+ * @brief 旧版 TIM3 兼容入口；当前版本使用 Z 相测速，不再使用该中断。
  *
  * vendor 层在这里把累计编码器计数换算成 rpm。
  */
@@ -346,7 +365,7 @@ void impl_stm32_encoder_adc_speed_irq_handler(void)
     vendor_stm32_encoder_adc_speed_irq_handler();
 }
 
-/** @brief Forward the PB12 Z-index EXTI interrupt to the vendor layer. */
+/** @brief 把 PB12 Z 相 EXTI 中断转发给 vendor 层处理。 */
 void impl_stm32_encoder_adc_z_irq_handler(void)
 {
     vendor_stm32_encoder_adc_z_irq_handler();
@@ -379,14 +398,14 @@ void TIM2_IRQHandler(void)
 }
 
 /**
- * @brief Legacy startup-vector entry for TIM3 (not enabled in this version).
+ * @brief 启动文件引用的旧版 TIM3 中断入口（当前版本未启用）。
  */
 void TIM3_IRQHandler(void)
 {
     impl_stm32_encoder_adc_speed_irq_handler();
 }
 
-/** @brief Startup-vector entry for PB12/EXTI12 Z-index pulses. */
+/** @brief 启动文件引用的 PB12/EXTI12 Z 相脉冲中断入口。 */
 void EXTI15_10_IRQHandler(void)
 {
     impl_stm32_encoder_adc_z_irq_handler();

@@ -1,3 +1,8 @@
+/**
+ * @file impl_usb_cdc_device.h
+ * @brief USB CDC 设备的 platform 实现层接口。
+ */
+
 #ifndef IMPL_USB_CDC_DEVICE_H
 #define IMPL_USB_CDC_DEVICE_H
 

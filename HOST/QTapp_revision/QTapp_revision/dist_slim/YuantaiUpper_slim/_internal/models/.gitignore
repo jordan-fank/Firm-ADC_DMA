@@ -1,0 +1,11 @@
+# 忽略大型模型文件
+*.pth
+*.pkl
+*.npy
+*.h5
+*.onnx
+
+# 但保留 README 和占位文件
+!README.md
+!.gitkeep
+!.gitignore

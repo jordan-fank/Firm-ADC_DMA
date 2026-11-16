@@ -1,3 +1,10 @@
+/**
+ * @file adc_stream_service.h
+ * @brief 服务层对外接口：ADC 数据流的启动、停止、轮询与状态查询。
+ *
+ * 上层（APP）只需要包含本头文件，不感知 USB CDC、ADC/DMA 等硬件细节。
+ */
+
 #ifndef ADC_STREAM_SERVICE_H
 #define ADC_STREAM_SERVICE_H
 
@@ -21,6 +28,11 @@ typedef enum {
  * @param samples_sent 已经成功写入 USB 发送环形缓冲区的 ADC 字节数。
  * @param samples_dropped ADC service 队列满时丢弃的采样字节数。
  * @param commands_received 已解析并执行的上位机命令数量。
+ * @param usb_busy_returns USB 发送返回 BUSY 的累计次数。
+ * @param usb_busy_episodes 连续 BUSY 的段数（从第一次 BUSY 到恢复成功算一段）。
+ * @param adc_pause_count 因背压暂停 ADC 采样的次数。
+ * @param adc_resume_count 背压解除后恢复 ADC 采样的次数。
+ * @param adc_queue_peak ADC 服务队列的历史最高水位（字节）。
  */
 typedef struct {
     uint32_t samples_sent;
@@ -77,10 +89,18 @@ adc_stream_service_state_t adc_stream_service_get_state(void);
  */
 adc_stream_service_stats_t adc_stream_service_get_stats(void);
 
-/** @brief Return the number of ADC bytes currently waiting in the service queue. */
+/**
+ * @brief 获取 ADC 服务队列中当前等待发送的字节数。
+ *
+ * @return 队列中尚未写入 USB 的 ADC 字节数。
+ */
 uint32_t adc_stream_service_get_queue_used(void);
 
-/** @brief Return whether the CPU may enter Sleep while USB remains active. */
+/**
+ * @brief 判断 CPU 是否可以进入 Sleep（USB 保持供电）。
+ *
+ * @return 1 表示队列和命令都已处理完，可以睡眠；0 表示仍需继续轮询。
+ */
 uint8_t adc_stream_service_can_sleep(void);
 
 #endif

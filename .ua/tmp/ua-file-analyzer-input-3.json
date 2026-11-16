@@ -1,7 +1,7 @@
 {
   "projectRoot": "E:/Desktop/MCU_revision1",
   "batchFiles": [
-    {"path": "操作手册.md", "language": "markdown", "sizeLines": 498, "fileCategory": "docs"}
+    {"path": "启动面板.bat", "language": "batch", "sizeLines": 29, "fileCategory": "script"}
   ],
-  "batchImportData": {"操作手册.md": []}
+  "batchImportData": {"启动面板.bat": []}
 }

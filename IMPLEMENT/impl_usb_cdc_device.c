@@ -1,3 +1,10 @@
+/**
+ * @file impl_usb_cdc_device.c
+ * @brief 实现层：把 platform_usb_device 抽象适配到 USB CDC 设备初始化。
+ *
+ * 当前只暴露一个 init 动作，内部调用 vendor_usb_cdc_device_init() 启动 ST USB 协议栈。
+ */
+
 #include "impl_usb_cdc_device.h"
 #include "vendor_usb_cdc.h"
 

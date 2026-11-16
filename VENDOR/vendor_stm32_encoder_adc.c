@@ -1,30 +1,54 @@
+/**
+ * @file vendor_stm32_encoder_adc.c
+ * @brief 驱动层：编码器触发 ADC 采样、DMA 搬运与 Z 相测速（STM32F4 标准库）。
+ *
+ * 硬件通路：
+ *   PA5(TIM2_CH1) 上升沿 -> TIM2 输入捕获 -> TRGO -> ADC1_IN2(PA2) -> DMA2_Stream0
+ *   -> 半满/满中断 -> vendor_adc_emit_* -> IMPLEMENT 回调 -> SERVICE 队列；
+ *   PB12 Z 相下降沿 -> EXTI12 -> 用 TIM5(1 MHz) 时间差计算 rpm。
+ *
+ * 关键设计：
+ *   - TIM2 只负责触发：PA5 上升沿经输入捕获产生 TRGO，不产生 CPU 中断；
+ *   - DMA 工作在循环模式，半满/满中断各提交半圈（512 个）采样；
+ *   - vendor_adc_dma_emit_position 记录“已经提交给上层”的位置，
+ *     正常中断和 stop 冲刷共用该游标，保证停止时不漏数据、不重复提交。
+ *
+ * 本文件直接操作寄存器/标准库外设，不依赖 PLATFORM/SERVICE。
+ */
+
 #include "vendor_stm32_encoder_adc.h"
 #include "stm32f4xx.h"
-/* sys.h supplies INTX_DISABLE/INTX_ENABLE; armclang has no __disable_irq() intrinsic. */
+/* sys.h 提供 INTX_DISABLE/INTX_ENABLE 宏；armclang 没有 __disable_irq() 内建函数。 */
 #include "sys.h"
 
-/* New board binding: PA5 is TIM2_CH1 single-edge input, PA4 is phase-A GPIO. */
+/* 新板卡引脚分配：PA5 为 TIM2_CH1 单边沿输入，PA4 为 A 相电平输入。 */
 #define VENDOR_ADC_GPIO_PORT               GPIOA
 #define VENDOR_ADC_PHASE_A_PIN             GPIO_Pin_4
 #define VENDOR_ADC_PHASE_B_PIN             GPIO_Pin_5
 #define VENDOR_ADC_ANALOG_PIN              GPIO_Pin_2
 #define VENDOR_ADC_CHANNEL                 ADC_Channel_2
-#define VENDOR_ADC_SAMPLE_TIME             ADC_SampleTime_56Cycles
-/* One PA5 rising edge produces one ADC trigger by default. */
+/*
+ * ADC 采样时间：144 个采样周期 + 8 个转换周期 = 152 周期 @36 MHz = 4.22 µs，
+ * 单次转换上限约 236.8 kSa/s。3000 rpm 时编码器周期 5 µs，余量约 0.78 µs。
+ * 对应最高转速约 3552 rpm（理论；实际建议 ≤3300 rpm）。
+ * 若后续提高探针转速，改回 112 周期（约 4500 rpm）或 56 周期（约 8437 rpm）。
+ */
+#define VENDOR_ADC_SAMPLE_TIME             ADC_SampleTime_144Cycles
+/* 默认每个 PA5 上升沿产生 1 次 ADC 触发。 */
 #define VENDOR_ADC_DEFAULT_TRIGGER_COUNTS  1U
-#define VENDOR_ADC_DEFAULT_SPEED_MS        500U
-#define VENDOR_ADC_DEFAULT_COUNTS_PER_REV  4000U
+#define VENDOR_ADC_DEFAULT_SPEED_MS        500U    /* 转速上报/停转超时周期：500 ms */
+#define VENDOR_ADC_DEFAULT_COUNTS_PER_REV  4000U   /* 编码器每转计数（当前不参与 RPM 计算） */
 /* ADC DMA 环形缓冲区大小，一半大小对应一次半满/满中断搬运量。 */
 #define VENDOR_ADC_DMA_BUFFER_SIZE         1024U
 #define VENDOR_ADC_DMA_HALF_SIZE           (VENDOR_ADC_DMA_BUFFER_SIZE / 2U)
 #define VENDOR_ADC_DMA_IRQ_PREEMPT_PRIORITY 0U
 #define VENDOR_ADC_DMA_IRQ_SUB_PRIORITY     0U
-/* TIM5 is a 1 MHz free-running timestamp for the once-per-revolution Z edge. */
+/* TIM5 作为 1 MHz 自由运行计数器，为每转一次的 Z 相边沿打时间戳。 */
 #define VENDOR_TIM5_INPUT_CLOCK_HZ         72000000U
 #define VENDOR_TIM5_TICK_HZ                1000000U
 #define VENDOR_TIM5_PRESCALER              (VENDOR_TIM5_INPUT_CLOCK_HZ / VENDOR_TIM5_TICK_HZ)
-#define VENDOR_Z_MAX_VALID_RPM             12000U
-#define VENDOR_Z_MIN_PERIOD_TICKS          ((60U * VENDOR_TIM5_TICK_HZ) / VENDOR_Z_MAX_VALID_RPM)
+#define VENDOR_Z_MAX_VALID_RPM             12000U    /* 转速上限，超过按无效处理 */
+#define VENDOR_Z_MIN_PERIOD_TICKS          ((60U * VENDOR_TIM5_TICK_HZ) / VENDOR_Z_MAX_VALID_RPM) /* 12000 rpm 对应的最小周期 */
 
 static vendor_stm32_encoder_adc_sample_handler_t vendor_adc_sample_handler;
 static void *vendor_adc_sample_context;
@@ -34,9 +58,9 @@ static uint16_t vendor_adc_dma_buffer[VENDOR_ADC_DMA_BUFFER_SIZE];
 static uint8_t vendor_adc_packed_samples[VENDOR_ADC_DMA_HALF_SIZE];
 static volatile uint8_t vendor_adc_acquisition_active;
 /*
- * Index of the first DMA sample that has not been submitted to the service
- * layer yet. NDTR tells us where DMA stopped writing; this cursor tells us
- * where the unsent tail really begins.
+ * 第一个尚未提交给 service 层的 DMA 采样下标。
+ * NDTR（DMA 剩余计数）只能告诉我们 DMA 当前写到了哪里；
+ * 这个游标才记录了“未上送尾部”真正从哪里开始。
  */
 static volatile uint32_t vendor_adc_dma_emit_position;
 static volatile uint32_t vendor_adc_latest_rpm;
@@ -58,6 +82,12 @@ static volatile uint8_t vendor_adc_debug_max;
 static volatile uint8_t vendor_adc_debug_last;
 static volatile uint8_t vendor_adc_debug_sample_seen;
 
+/**
+ * @brief 清零所有调试计数器。
+ *
+ * 每次新的采集开始时调用，保证 USART 遥测里的计数只反映本次采集。
+ * 注意：最小值预置为 0xFF、最大值为 0，便于第一次比较时正确更新。
+ */
 static void vendor_adc_reset_debug_counters(void)
 {
     vendor_adc_debug_dma_half_irq_count = 0U;
@@ -197,10 +227,13 @@ static void vendor_adc_emit_dma_range(uint32_t source_offset, uint32_t sample_co
     }
 }
 
-/*
- * Submit every sample from the saved emit cursor up to write_position.
- * Both the normal IRQ path and the stop path advance this same cursor, so a
- * DMA sample range cannot be submitted twice at acquisition stop.
+/**
+ * @brief 提交从“已上送游标”到 write_position 之间的全部采样。
+ *
+ * 正常中断路径和 stop 冲刷路径都会推进同一个游标，
+ * 因此同一段 DMA 采样在停止采集时不会被重复提交。
+ *
+ * @param write_position DMA 当前写入位置（0 ~ VENDOR_ADC_DMA_BUFFER_SIZE-1）。
  */
 static void vendor_adc_emit_until(uint32_t write_position)
 {
@@ -230,7 +263,7 @@ static void vendor_adc_config_gpio(void)
 
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-    /* PA5 is TIM2_CH1. Only its rising edge advances the sample divider. */
+    /* PA5 为 TIM2_CH1，只有上升沿会推进采样分频计数。 */
     gpio.GPIO_Pin = VENDOR_ADC_PHASE_B_PIN;
     gpio.GPIO_Mode = GPIO_Mode_AF;
     gpio.GPIO_Speed = GPIO_Speed_50MHz;
@@ -239,7 +272,7 @@ static void vendor_adc_config_gpio(void)
     GPIO_Init(VENDOR_ADC_GPIO_PORT, &gpio);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2);
 
-    /* PA4 remains available as a phase-A level input, but it is not timer-capable. */
+    /* PA4 仍保留为 A 相电平输入，但该引脚不具备定时器输入功能。 */
     gpio.GPIO_Pin = VENDOR_ADC_PHASE_A_PIN;
     gpio.GPIO_Mode = GPIO_Mode_IN;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
@@ -252,7 +285,7 @@ static void vendor_adc_config_gpio(void)
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(VENDOR_ADC_GPIO_PORT, &gpio);
 
-    /* PB11 enables the new-board 3 V rail. Keep it enabled after initialization. */
+    /* PB11 使能新板的 3 V 电源轨，初始化后保持使能。 */
     GPIO_ResetBits(GPIOB, GPIO_Pin_11);
     gpio.GPIO_Pin = GPIO_Pin_11;
     gpio.GPIO_Mode = GPIO_Mode_OUT;
@@ -262,7 +295,7 @@ static void vendor_adc_config_gpio(void)
     GPIO_Init(GPIOB, &gpio);
     GPIO_SetBits(GPIOB, GPIO_Pin_11);
 
-    /* PB12 receives the active-low Z pulse from U8. */
+    /* PB12 接收 U8 输出的低电平有效 Z 相脉冲。 */
     gpio.GPIO_Pin = GPIO_Pin_12;
     gpio.GPIO_Mode = GPIO_Mode_IN;
     gpio.GPIO_Speed = GPIO_Speed_50MHz;
@@ -300,10 +333,9 @@ static void vendor_adc_config_tim2_single_edge(uint16_t trigger_counts)
     TIM_TimeBaseInit(TIM2, &time_base);
 
     /*
-     * CH1 directly captures TI1 (PA5).  MMS=011 selects the compare-pulse
-     * master output, so each CC1 input-capture event produces a TIM2_TRGO
-     * pulse for ADC1.  TIM2 itself free-runs; PA5 is an input event, not its
-     * counter clock.
+     * CH1 直接捕获 TI1（PA5）。MMS=011 选择比较脉冲作为主输出，
+     * 因此每次 CC1 输入捕获事件都会产生一个 TIM2_TRGO 脉冲送给 ADC1。
+     * TIM2 本身自由运行；PA5 是输入事件，不作为计数器时钟。
      */
     TIM_InternalClockConfig(TIM2);
     TIM_ICStructInit(&input_capture);
@@ -322,7 +354,14 @@ static void vendor_adc_config_tim2_single_edge(uint16_t trigger_counts)
 }
 
 /**
- * @brief Configure TIM5 as a 1 MHz, 32-bit free-running Z timestamp.
+ * @brief 把 TIM5 配置为 1 MHz、32 位自由运行计数器，用于 Z 相时间戳。
+ *
+ * 预分频 = 72 MHz / 1 MHz，周期设为最大值，计满后自然溢出回绕；
+ * 计算时间差时使用无符号减法，可自动跨过溢出点。
+ *
+ * [NEW] TIM5 配置完成后立即启动，并且此后一直运行：
+ * 采集开始时会重新清零，但停止采集不再关闭 TIM5。这样空闲时
+ * PB12 Z 相中断仍然能测速，USART1 才能输出“只旋转、不采集”的 rpm。
  */
 static void vendor_adc_config_tim5_timestamp(void)
 {
@@ -340,9 +379,10 @@ static void vendor_adc_config_tim5_timestamp(void)
     time_base.TIM_RepetitionCounter = 0U;
     TIM_TimeBaseInit(TIM5, &time_base);
     TIM_SetCounter(TIM5, 0U);
+    TIM_Cmd(TIM5, ENABLE);
 }
 
-/** Configure PB12 falling-edge EXTI for the active-low Z index pulse. */
+/** @brief 配置 PB12 下降沿 EXTI，接收低电平有效的 Z 相索引脉冲。 */
 static void vendor_adc_config_z_irq(const vendor_stm32_encoder_adc_config_t *config)
 {
     EXTI_InitTypeDef exti;
@@ -386,14 +426,20 @@ static void vendor_adc_config_dma_irq(void)
     NVIC_Init(&nvic);
 }
 
+/**
+ * @brief 配置 DMA2 Stream0：ADC_DR -> vendor_adc_dma_buffer 循环搬运。
+ *
+ * 半字宽度、内存自增、循环模式，并打开半满/满/错误中断。
+ * 注意 NVIC 优先级分组必须在写优先级之前配置，见函数内注释。
+ */
 static void vendor_adc_config_dma(void)
 {
     DMA_InitTypeDef dma;
 
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
     /*
-     * USB also uses PriorityGroup_1. Configure the group before programming
-     * the DMA priority so preemption priority 0 is encoded as intended.
+     * USB 同样使用 PriorityGroup_1。必须先配置分组、再写 DMA 优先级，
+     * 这样抢占优先级 0 才会按预期编码。
      */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
@@ -502,8 +548,8 @@ vendor_stm32_encoder_adc_status_t vendor_stm32_encoder_adc_init(const vendor_stm
 /**
  * @brief 启动编码器触发 ADC 采样和转速统计。
  *
- * Start order is DMA -> ADC -> TIM5 -> TIM2, so storage, conversion and the
- * Z timestamp are ready before the first PA5 sampling edge arrives.
+ * 启动顺序为 DMA -> ADC -> TIM5 -> TIM2：保证在第一个 PA5 采样边沿到来之前，
+ * 存储通道、ADC 转换和 Z 相时间戳都已经就绪。
  */
 void vendor_stm32_encoder_adc_start(void)
 {
@@ -534,9 +580,9 @@ void vendor_stm32_encoder_adc_start(void)
     DMA_SetCurrDataCounter(DMA2_Stream0, VENDOR_ADC_DMA_BUFFER_SIZE);
 
     /*
-     * USB initialization runs after ADC initialization and programs the global
-     * NVIC group. Reapply the DMA priority at each acquisition start so DMA
-     * can always preempt the lower-priority USB FS interrupt.
+     * USB 初始化在 ADC 初始化之后执行，会重新设置全局 NVIC 分组。
+     * 因此每次启动采集时都重新配置一次 DMA 优先级，
+     * 保证 DMA 始终能抢占优先级更低的 USB FS 中断。
      */
     vendor_adc_config_dma_irq();
     NVIC_EnableIRQ(DMA2_Stream0_IRQn);
@@ -547,9 +593,10 @@ void vendor_stm32_encoder_adc_start(void)
 }
 
 /**
- * @brief 停止采样和转速统计，并吐出 DMA 中已产生但未上送的采样。
+ * @brief 停止采样，并吐出 DMA 中已产生但未上送的采样。
  *
- * TIM2/TIM5/ADC/DMA are stopped before the pending DMA tail is emitted.
+ * 停止 TIM2/ADC/DMA，但保持 TIM5 运行：空闲时仍要用 Z 相测速。
+ * 再补发 DMA 中尚未上送的尾部数据。
  */
 void vendor_stm32_encoder_adc_stop(void)
 {
@@ -557,11 +604,21 @@ void vendor_stm32_encoder_adc_stop(void)
     uint8_t dma_boundary_pending;
 
     TIM_Cmd(TIM2, DISABLE);
-    TIM_Cmd(TIM5, DISABLE);
+    /*
+     * [NEW] TIM5 保持运行：采集停止后仍然需要给 Z 相边沿打时间戳，
+     * 这样空闲（只旋转、不采集）时 USART1 也能输出实际 rpm。
+     *
+     * 同时清掉采集期的 Z 相参考点和旧转速：如果探针中途停过，空闲
+     * 测速会重新建立参考，避免拿“很久以前的边沿”算出一个错误的周期。
+     * 探针仍在转时，下一个 Z 边沿会很快重新给出实际 rpm。
+     */
+    vendor_adc_z_reference_valid = 0U;
+    vendor_adc_latest_rpm = 0U;
+    vendor_adc_speed_updated = 0U;
     ADC_Cmd(ADC1, DISABLE);
     /*
-     * Freeze the DMA IRQ first. Any completed-but-unhandled range is recovered
-     * below from NDTR and the saved emit cursor.
+     * 先冻结 DMA 中断。已经完成但尚未处理的采样区间，
+     * 会在下面根据 NDTR 和保存的上送游标补发。
      */
     NVIC_DisableIRQ(DMA2_Stream0_IRQn);
     DMA_Cmd(DMA2_Stream0, DISABLE);
@@ -579,8 +636,9 @@ void vendor_stm32_encoder_adc_stop(void)
         }
 
         /*
-         * Equal positions normally mean an empty tail. A pending boundary flag
-         * means DMA completed one whole 1024-sample lap before its IRQ ran.
+         * 两个位置相等通常表示尾部为空。
+         * 但如果还挂着边界标志，说明 DMA 在上报中断之前已经完整跑完
+         * 一整圈 1024 个采样，需要整圈补发。
          */
         if ((write_position == vendor_adc_dma_emit_position) &&
             (dma_boundary_pending != 0U)) {
@@ -619,6 +677,21 @@ void vendor_stm32_encoder_adc_resume(void)
 }
 
 /**
+ * [NEW] 控制 PB11 使能引脚。
+ *
+ * PB11 已在 vendor_adc_config_gpio() 中配置为推挽输出，上电默认高电平。
+ * 这里只改变输出电平，不重新配置 GPIO，也不影响 ADC/DMA/USB。
+ */
+void vendor_stm32_encoder_adc_set_enable_pin(uint8_t high)
+{
+    if (high != 0U) {
+        GPIO_SetBits(GPIOB, GPIO_Pin_11);
+    } else {
+        GPIO_ResetBits(GPIOB, GPIO_Pin_11);
+    }
+}
+
+/**
  * @brief 注册采样字节上送回调。
  *
  * @param handler DMA 采到数据后调用的回调函数。
@@ -648,13 +721,13 @@ vendor_stm32_encoder_adc_status_t vendor_stm32_encoder_adc_get_speed_update(vend
     }
 
     /*
-     * Make the timeout check atomic with the Z ISR. Otherwise the interrupt
-     * can update last_tick after foreground code reads now; unsigned
-     * subtraction then looks like a huge timeout and briefly reports 0 RPM.
+     * 超时判断必须与 Z 相中断互斥。否则中断可能在主循环读取 now 之后
+     * 才更新 last_tick，无符号减法会得到一个巨大的超时值，
+     * 导致转速短暂误报为 0。
      */
     INTX_DISABLE();
 
-    /* No Z edge for one report interval means the rotor is treated as stopped. */
+    /* 一个上报周期内没有新的 Z 相边沿，就认为转子已经停转。 */
     if ((vendor_adc_acquisition_active != 0U) &&
         (vendor_adc_z_reference_valid != 0U) &&
         (vendor_adc_latest_rpm != 0U) &&
@@ -676,16 +749,42 @@ vendor_stm32_encoder_adc_status_t vendor_stm32_encoder_adc_get_speed_update(vend
     return VENDOR_STM32_ENCODER_ADC_OK;
 }
 
+/**
+ * @brief 拷贝一份当前采集诊断快照，供 USART 调试遥测使用。
+ *
+ * 快照在关中断区间内一次性复制，避免前台读到“半更新”的中断统计。
+ * 只允许在主循环上下文调用，不要在中断里调用。
+ *
+ * @param debug 输出参数，保存时间戳、中断计数、ADC 极值、硬件状态等。
+ */
 void vendor_stm32_encoder_adc_get_debug(vendor_stm32_encoder_adc_debug_t *debug)
 {
+    uint32_t now;
+
     if (debug == 0) {
         return;
     }
 
-    /* This foreground-only API is called with interrupts enabled. */
+    /* 该接口只在主循环调用，调用时中断处于开启状态。 */
     INTX_DISABLE();
 
-    debug->timestamp_us = TIM_GetCounter(TIM5);
+    now = TIM_GetCounter(TIM5);
+    /*
+     * [NEW] 停转超时归零：超过 speed_update_ms（默认 500 ms）没有新的
+     * Z 相边沿，就把转速当作 0。该判断放在关中断区间内，避免与 Z 相
+     * 中断更新 last_tick 竞争；空闲和采集状态都生效。
+     *
+     * 注意：如果以后把探针转速降到 120 rpm 以下（一转超过 500 ms），
+     * 需要同步增大 VENDOR_ADC_DEFAULT_SPEED_MS，否则会被误判为停转。
+     */
+    if ((vendor_adc_z_reference_valid != 0U) &&
+        (vendor_adc_latest_rpm != 0U) &&
+        (vendor_adc_speed_timeout_ticks != 0U) &&
+        ((uint32_t)(now - vendor_adc_z_last_tick) > vendor_adc_speed_timeout_ticks)) {
+        vendor_adc_latest_rpm = 0U;
+        vendor_adc_z_reference_valid = 0U;
+    }
+    debug->timestamp_us = now;
     debug->rpm = vendor_adc_latest_rpm;
     debug->dma_half_irq_count = vendor_adc_debug_dma_half_irq_count;
     debug->dma_full_irq_count = vendor_adc_debug_dma_full_irq_count;
@@ -753,9 +852,8 @@ void vendor_stm32_encoder_adc_dma_irq_handler(void)
     }
 
     /*
-     * If USB kept this IRQ waiting long enough for both flags to become set,
-     * emit them in circular-buffer order. The saved cursor identifies which
-     * boundary is expected next.
+     * 如果 USB 中断让本中断等待过久，半满/满两个标志可能同时置位。
+     * 此时按环形缓冲区的顺序依次提交；保存的游标可以判断下一个边界是谁。
      */
     if (vendor_adc_dma_emit_position < VENDOR_ADC_DMA_HALF_SIZE) {
         if (half_pending != 0U) {
@@ -792,7 +890,7 @@ void vendor_stm32_encoder_adc_dma_irq_handler(void)
 /**
  * @brief 保留的 TIM2 更新中断转接函数。
  *
- * TIM2 CC2/update interrupts are disabled; CC2 triggers ADC directly in hardware.
+ * TIM2 的 CC2/更新中断当前未使能；ADC 触发完全由硬件链路完成。
  */
 void vendor_stm32_encoder_adc_tim_irq_handler(void)
 {
@@ -800,18 +898,17 @@ void vendor_stm32_encoder_adc_tim_irq_handler(void)
 }
 
 /**
- * @brief Legacy TIM3 entry retained for startup-vector compatibility.
+ * @brief 保留的 TIM3 中断入口，仅为兼容启动向量表，当前版本不会进入。
  */
 void vendor_stm32_encoder_adc_speed_irq_handler(void)
 {
 }
 
 /**
- * @brief PB12 Z-index interrupt: measure one revolution with TIM5 timestamps.
+ * @brief PB12 Z 相中断：用 TIM5 时间戳测量转一圈的时间。
  *
- * U8 is wired as an active-low receiver in the current schematic, so EXTI12
- * is configured for the falling edge. The first edge only establishes the
- * reference. Every later valid edge updates the internal RPM value.
+ * 当前原理图中 U8 为低电平有效接收器，因此 EXTI12 配置为下降沿触发。
+ * 第一个边沿只建立参考点；之后每个有效边沿都会更新内部 rpm 值。
  */
 void vendor_stm32_encoder_adc_z_irq_handler(void)
 {
@@ -823,10 +920,11 @@ void vendor_stm32_encoder_adc_z_irq_handler(void)
     }
 
     EXTI_ClearITPendingBit(EXTI_Line12);
-    if (vendor_adc_acquisition_active == 0U) {
-        return;
-    }
 
+    /*
+     * [NEW] 空闲时也测速：上位机需要在“只旋转、不采集”时显示 rpm。
+     * 采集相关的计数器会在 start() 中统一清零，空闲边沿不会污染采集统计。
+     */
     vendor_adc_debug_z_irq_count++;
 
     now = TIM_GetCounter(TIM5);
@@ -846,7 +944,7 @@ void vendor_stm32_encoder_adc_z_irq_handler(void)
     vendor_adc_debug_last_z_period_us = period_ticks;
     vendor_adc_latest_rpm = (60U * VENDOR_TIM5_TICK_HZ) / period_ticks;
 
-    /* Calculate every revolution, but keep the existing USB report interval. */
+    /* 每转都重新计算转速，但上报仍遵循原有的 USB 周期（speed_update_ms）。 */
     if ((uint32_t)(now - vendor_adc_z_last_report_tick) >=
         ((uint32_t)vendor_adc_speed_update_ms * (VENDOR_TIM5_TICK_HZ / 1000U))) {
         vendor_adc_z_last_report_tick = now;

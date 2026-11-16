@@ -1,3 +1,10 @@
+/**
+ * @file platform_adc_stream.h
+ * @brief ADC 采样流抽象接口（纯头文件，不含任何 STM32 实现）。
+ *
+ * service 层只通过本头文件的 ops 表控制采样，实现由 IMPLEMENT/VENDOR 层提供。
+ */
+
 #ifndef PLATFORM_ADC_STREAM_H
 #define PLATFORM_ADC_STREAM_H
 
@@ -27,8 +34,8 @@ typedef enum {
  * @brief ADC 采样流初始化配置。
  *
  * @param trigger_counts_per_sample 编码器累计多少个计数触发一次 ADC 采样。
- * @param speed_update_ms Speed-result reporting interval and stopped-rotor timeout.
- * @param encoder_counts_per_rev Retained for platform compatibility; Z-period RPM does not use it.
+ * @param speed_update_ms 转速结果上报周期，同时作为停转超时时间，单位 ms。
+ * @param encoder_counts_per_rev 为接口兼容保留；当前 Z 相周期测速不使用该值。
  */
 typedef struct {
     uint16_t trigger_counts_per_sample;

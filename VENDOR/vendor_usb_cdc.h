@@ -1,3 +1,8 @@
+/**
+ * @file vendor_usb_cdc.h
+ * @brief USB CDC 虚拟串口驱动接口（对上层屏蔽 ST USB 协议栈细节）。
+ */
+
 #ifndef VENDOR_USB_CDC_H
 #define VENDOR_USB_CDC_H
 

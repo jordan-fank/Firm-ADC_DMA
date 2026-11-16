@@ -1,3 +1,11 @@
+/**
+ * @file platform_usb_device.h
+ * @brief USB 设备抽象接口（纯头文件，不含任何 STM32 实现）。
+ *
+ * 当前只抽象“初始化 USB 协议栈”一个动作，后续如需反初始化、
+ * 挂起/恢复，可在 ops 表中继续扩展。
+ */
+
 #ifndef PLATFORM_USB_DEVICE_H
 #define PLATFORM_USB_DEVICE_H
 

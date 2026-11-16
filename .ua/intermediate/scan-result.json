@@ -319,13 +319,19 @@
       "fileCategory": "script"
     },
     {
+      "path": "启动面板.bat",
+      "language": "batch",
+      "sizeLines": 29,
+      "fileCategory": "script"
+    },
+    {
       "path": "操作手册.md",
       "language": "markdown",
       "sizeLines": 498,
       "fileCategory": "docs"
     }
   ],
-  "totalFiles": 52,
+  "totalFiles": 53,
   "filteredByIgnore": 126,
   "estimatedComplexity": "moderate",
   "importMap": {
@@ -406,7 +412,8 @@
     ],
     "VENDOR/vendor_usb_cdc.h": [],
     "keilkilll.bat": [],
+    "启动面板.bat": [],
     "操作手册.md": []
   },
-  "contentDigest": "4ef9c82910a6712d7004c34a9301bc36c0fd80f3ead748ff934f08c60a65875b"
+  "contentDigest": "86fa9dfd3de82867a1d6f98a9e7ef6faecef9f90e6880e41cca57e021ea94c46"
 }

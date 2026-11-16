@@ -1,3 +1,14 @@
+/**
+ * @file vendor_usb_cdc.c
+ * @brief 驱动层：USB CDC 虚拟串口的收发封装。
+ *
+ * 底层是 ST USB Device Library 的 CDC 类驱动：
+ *   - 发送：直接写入 ST CDC 类维护的 APP_Rx_Buffer 环形缓冲区，
+ *     由 USB 中断慢慢搬给主机，因此 write() 不会阻塞；
+ *   - 接收：CDC 类驱动收到 OUT 包后调用 vendor_usb_cdc_handle_rx_packet()，
+ *     再经注册的回调交给 IMPLEMENT/SERVICE 层。
+ */
+
 #include "vendor_usb_cdc.h"
 #include "usb_conf.h"
 #include "usbd_conf.h"
@@ -103,7 +114,7 @@ vendor_usb_cdc_status_t vendor_usb_cdc_write(const uint8_t *data, uint32_t lengt
         new_write_index -= APP_RX_DATA_SIZE;
     }
 
-    /* Publish only fully copied data to the USB interrupt consumer. */
+    /* 等数据全部拷贝完成后才更新写指针，避免 USB 中断读到尚未写完的缓冲区。 */
     APP_Rx_ptr_in = new_write_index;
 
     return VENDOR_USB_CDC_OK;
