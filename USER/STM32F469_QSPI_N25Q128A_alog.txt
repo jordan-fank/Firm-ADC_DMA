@@ -6,7 +6,7 @@
 [Found keyword]: ----------Execution Region----------
 [name]:  ER_IROM1 
 [Exec base]: 0x8000000
-[Size]: 0x67b8
+[Size]: 0x6864
 [Max]: 0x100000
 [Found keyword]: ----------Execution Region----------
 [name]:  RW_IRAM1 
@@ -17,7 +17,7 @@
   RW_IRAM1 :0x20000000
   128.00 KB :|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö____________|   42.55 % (   54.47 KB /   128.00 KB) [75296 B]
   ER_IROM1 :0x8000000
-    1.00 MB :|____________________|    2.53 % (    0.03 MB /     1.00 MB) [1022024 B]
+    1.00 MB :|____________________|    2.55 % (    0.03 MB /     1.00 MB) [1021852 B]
 [export csv]: ./STM32F469_QSPI_N25Q128A_sort_by_flash.csv
 [export csv]: ./STM32F469_QSPI_N25Q128A_sort_by_ram.csv
 [export xlsx]: STM32F469_QSPI_N25Q128A_analysis.xlsx

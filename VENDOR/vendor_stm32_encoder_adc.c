@@ -28,10 +28,11 @@
 #define VENDOR_ADC_ANALOG_PIN              GPIO_Pin_2
 #define VENDOR_ADC_CHANNEL                 ADC_Channel_2
 /*
- * ADC 采样时间：144 个采样周期 + 8 个转换周期 = 152 周期 @36 MHz = 4.22 µs，
- * 单次转换上限约 236.8 kSa/s。3000 rpm 时编码器周期 5 µs，余量约 0.78 µs。
- * 对应最高转速约 3552 rpm（理论；实际建议 ≤3300 rpm）。
- * 若后续提高探针转速，改回 112 周期（约 4500 rpm）或 56 周期（约 8437 rpm）。
+ * ADC 采样时间：56 个采样周期 + 8 个转换周期 = 64 周期 @36 MHz = 1.78 µs，
+ * 单次转换上限约 562.5 kSa/s。4000 点/转时对应最高转速约 8437 rpm（理论）。
+ * 实际建议 ≤7500~8000 rpm：8437 rpm 时编码器周期正好等于转换时间，没有余量；
+ * 8000 rpm 约 533.3 kSa/s（余量约 5%），7500 rpm 约 500 kSa/s（余量约 12.5%）。
+ * 若需要更长采样孔径/更低噪声，可改 112 周期（约 4500 rpm）或 144 周期（约 3552 rpm）。
  */
 #define VENDOR_ADC_SAMPLE_TIME             ADC_SampleTime_144Cycles
 /* 默认每个 PA5 上升沿产生 1 次 ADC 触发。 */
