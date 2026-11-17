@@ -32,3 +32,18 @@ USER/.pack/
 # ===== understand-anything 增量分析的中间产物（保留 scan-result.json 供增量跳过 Phase 1）=====
 .ua/intermediate/*
 !.ua/intermediate/scan-result.json
+
+# ===== 大文件不入库（单文件可达 100MB+，会把 push 拖到十几分钟）=====
+# 波形/采集数据
+波形/
+排查波形/
+ADC采集波形*.csv
+
+# 技术手册
+*.pdf
+
+# HOST 上位机打包产物
+HOST/QTapp_revision/QTapp_revision/dist/
+HOST/QTapp_revision/QTapp_revision/dist_onefile/
+HOST/QTapp_revision/QTapp_revision/dist_slim/
+*.exe
